@@ -276,8 +276,8 @@ if __name__ == "__main__":
                     span = next_time - time.perf_counter()
                     if span > 0.0:
                         time.sleep(span)
-                    animation_mouth.update(2.0 / args.framerate)
-                    animation_eyes.update(2.0 / args.framerate)
+                    animation_mouth.update(1.0 / args.framerate)
+                    animation_eyes.update(1.0 / args.framerate)
                     next_time += 1.0 / args.framerate
             except BrokenPipeError:
                 pass
