@@ -173,28 +173,37 @@ https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/hubert_base.pt
 
 ### 7. tha3・mascotgirlおよび必要なライブラリをインストール
 
-まず、以下の2つをダウンロードして解凍してください。
+まず、以下の3つをダウンロードして解凍してください。
 
 https://github.com/NON906/mascotgirl/archive/refs/heads/main.zip  
-https://github.com/pkhungurn/talking-head-anime-3-demo/archive/refs/heads/main.zip
+https://github.com/pkhungurn/talking-head-anime-3-demo/archive/refs/heads/main.zip  
+https://www.dropbox.com/s/y7b8jl4n2euv8xe/talking-head-anime-3-models.zip
 
 次にmascotgirlの中のtalking_head_anime_3_demoフォルダに、talking-head-anime-3-demoの中身を入れてください。  
-以下のようになります。
+（上記2つは、Gitをインストール済みであれば以下でも構いません）
+```
+git clone --recursive https://github.com/NON906/mascotgirl.git
+```
+さらにtalking-head-anime-3-modelsをその中のdata/modelsに入れてください。  
+最終的には以下のようになります。
+
 ```
 mascotgirl
 - chara
 ...
 - talking_head_anime_3_demo
   - data
+    - images
+    - models
+      - separable_float
+      - separable_half
+      - standard_float
+      - standard_half
+      ...
   - docs
   - tha3
   ...
 ...
-```
-
-（もし、Gitをインストール済みであれば以下でも構いません）
-```
-git clone --recursive https://github.com/NON906/mascotgirl.git
 ```
 
 配置し終わったら、以下を実行してください。
