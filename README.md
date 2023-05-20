@@ -175,7 +175,7 @@ https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/hubert_base.pt
 
 まず、以下の2つをダウンロードして解凍してください。
 
-https://github.com/NON906/mascotgirl/archive/refs/heads/main.zip
+https://github.com/NON906/mascotgirl/archive/refs/heads/main.zip  
 https://github.com/pkhungurn/talking-head-anime-3-demo/archive/refs/heads/main.zip
 
 次にmascotgirlの中のtalking_head_anime_3_demoフォルダに、talking-head-anime-3-demoの中身を入れてください。  
