@@ -49,7 +49,7 @@ if __name__ == "__main__":
     parser.add_argument('--image')
     parser.add_argument('--skip_image_setting', action='store_true')
     parser.add_argument('--image_mode', default='standard_float')
-    parser.add_argument('--framerate', type=float, default=30.0)
+    parser.add_argument('--framerate', type=float, default=10.0)
     parser.add_argument('--image_pipe_name')
     parser.add_argument('--voicevox_path')
     parser.add_argument('--voicevox_url', default='http://localhost:50021')
@@ -137,6 +137,9 @@ if __name__ == "__main__":
                 style_ids.append(style['id'])
     if args.voicevox_speaker_name == 'WhiteCUL':
         style_names = ['normal', 'happy', 'sad', 'crying']
+    if len(style_ids) <= 0:
+        print("ERROR: Undefined speaker name.", file=sys.stderr)
+        exit()
 
     mascot_chatgpt = None
     if args.chatgpt_apikey is not None:
@@ -194,9 +197,11 @@ if __name__ == "__main__":
             json_compatible_item_data = jsonable_encoder({'success': False})
             return JSONResponse(content=json_compatible_item_data)
 
+        speaker_id = style_ids[0]
         for s_id, s_name in enumerate(style_names):
-            if s_id == 0 or s_name == response_values['voice_style']:
+            if s_name == response_values['voice_style']:
                 speaker_id = style_ids[s_id]
+                break
 
         s = re.sub(r'([。\.！\!？\?]+)', r'\1\n', response_values['message'])
         messages = s.splitlines()
@@ -220,13 +225,12 @@ if __name__ == "__main__":
 
         if voice_changer is not None:
             vc_output = voice_changer.test(vc_input)
-            audio_pipe.add_bytes(vc_output)
         else:
-            audio_pipe.add_bytes(vc_input)
+            vc_output = vc_input
+        audio_pipe.add_bytes(vc_output)
 
-        time_length = 0.0
         for res1_data in mouth_queries:
-            time_length += animation_mouth.set_audio_query(res1_data)
+            time_length = animation_mouth.set_audio_query(res1_data)
         animation_eyes.set_morph(response_values['eyes'], time_length)
 
         if response_values['eyebrow'] == 'normal':
@@ -269,16 +273,12 @@ if __name__ == "__main__":
                                 sys.stdout.buffer.write(img.tobytes())
                         else:
                             image_pipe.write(img.tobytes())
-                        animation_mouth.update(1.0 / args.framerate)
-                        animation_eyes.update(1.0 / args.framerate)
-                        span = next_time - time.perf_counter()
-                        if span > 0.0:
-                            time.sleep(span)
-                        else:
-                            next_time = time.perf_counter()
-                        next_time += 1.0 / args.framerate
-                    else:
-                        time.sleep(0.01)
+                    span = next_time - time.perf_counter()
+                    if span > 0.0:
+                        time.sleep(span)
+                    animation_mouth.update(2.0 / args.framerate)
+                    animation_eyes.update(2.0 / args.framerate)
+                    next_time += 1.0 / args.framerate
             except BrokenPipeError:
                 pass
 

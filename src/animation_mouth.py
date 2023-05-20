@@ -8,7 +8,7 @@ class AnimationMouthQuery:
 
 class AnimationMouth:
     MAINTAIN_TIME = 0.08
-    QUERY_TIME_SCALE = 0.5 #40000.0 / 48000.0
+    QUERY_TIME_SCALE = 1.0 #40000.0 / 48000.0
 
     play_position = 0.0
     animation_length = 0.0
