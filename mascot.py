@@ -49,7 +49,7 @@ if __name__ == "__main__":
     parser.add_argument('--image')
     parser.add_argument('--skip_image_setting', action='store_true')
     parser.add_argument('--image_mode', default='standard_float')
-    parser.add_argument('--framerate', type=float, default=10.0)
+    parser.add_argument('--framerate', type=float, default=30.0)
     parser.add_argument('--image_pipe_name')
     parser.add_argument('--voicevox_path')
     parser.add_argument('--voicevox_url', default='http://localhost:50021')
@@ -264,8 +264,10 @@ if __name__ == "__main__":
                 image_pipe.create(args.image_pipe_name)
             next_time = time.perf_counter() + 1.0 / args.framerate
             try:
+                span = 1.0 / args.framerate
                 while not stop_main_thread:
-                    mascot_image.update()
+                    if span > 0.0:
+                        mascot_image.update()
                     img = mascot_image.get_numpy_image()
                     if img is not None:
                         if image_pipe is None:
