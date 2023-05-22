@@ -323,7 +323,7 @@ if __name__ == "__main__":
         if args.run_command_reload:
             def command_thread_func():
                 while not stop_main_thread:
-                    subprocess.run(args.run_command)
+                    subprocess.run(args.run_command.split())
 
             command_thread = threading.Thread(target=command_thread_func)
             command_thread.start()
