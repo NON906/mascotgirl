@@ -264,8 +264,10 @@ if __name__ == "__main__":
                 image_pipe.create(args.image_pipe_name)
             next_time = time.perf_counter() + 1.0 / args.framerate
             try:
-                span = 1.0 / args.framerate
                 while not stop_main_thread:
+                    animation_mouth.update(1.0 / args.framerate)
+                    animation_eyes.update(1.0 / args.framerate)
+                    span = next_time - time.perf_counter()
                     if span > 0.0:
                         mascot_image.update()
                     img = mascot_image.get_numpy_image()
@@ -278,8 +280,6 @@ if __name__ == "__main__":
                     span = next_time - time.perf_counter()
                     if span > 0.0:
                         time.sleep(span)
-                    animation_mouth.update(1.0 / args.framerate)
-                    animation_eyes.update(1.0 / args.framerate)
                     next_time += 1.0 / args.framerate
             except BrokenPipeError:
                 pass
