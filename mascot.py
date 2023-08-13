@@ -56,6 +56,7 @@ if __name__ == "__main__":
     parser.add_argument('--voicevox_speaker_name', default='WhiteCUL')
     parser.add_argument('--voicevox_pitch_scale', type=float, default=0.0)
     parser.add_argument('--voicevox_intonation_scale', type=float, default=1.0)
+    parser.add_argument('--voicevox_style_names')
     if os.name == 'nt':
         default_path = '\\\\.\\pipe\\mascot_pipe'
     else:
@@ -132,11 +133,19 @@ if __name__ == "__main__":
     res_data = res.json()
     for speaker in res_data:
         if speaker['name'] == args.voicevox_speaker_name:
-            for style in speaker['styles']:
-                style_names.append(style['name'])
-                style_ids.append(style['id'])
-    if args.voicevox_speaker_name == 'WhiteCUL':
-        style_names = ['normal', 'happy', 'sad', 'crying']
+            if args.voicevox_style_names is None:
+                for style in speaker['styles']:
+                    style_names.append(style['name'])
+                    style_ids.append(style['id'])
+            else:
+                style_args_list = args.voicevox_style_names.replace(' ', '').split(',')
+                for style_arg in style_args_list:
+                    for style in speaker['styles']:
+                        if style_arg == style['name']:
+                            style_names.append(style['name'])
+                            style_ids.append(style['id'])
+    #if args.voicevox_speaker_name == 'WhiteCUL':
+    #    style_names = ['normal', 'happy', 'sad', 'crying']
     if len(style_ids) <= 0:
         print("ERROR: Undefined speaker name.", file=sys.stderr)
         exit()
