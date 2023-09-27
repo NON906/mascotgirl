@@ -260,6 +260,8 @@ if __name__ == "__main__":
 
     default_stdout = sys.stdout
 
+    start_time = time.perf_counter()
+
     def main_thread_func():
         global image_pipe
 
@@ -271,7 +273,7 @@ if __name__ == "__main__":
                 else:
                     image_pipe = NamedPipeUnix()
                 image_pipe.create(args.image_pipe_name)
-            next_time = time.perf_counter() + 1.0 / args.framerate
+            next_time = start_time + 1.0 / args.framerate
             try:
                 while not stop_main_thread:
                     animation_mouth.update(1.0 / args.framerate)
@@ -309,7 +311,7 @@ if __name__ == "__main__":
                 new_pipe = NamedPipeUnix()
             new_pipe.create(args.audio_pipe_name)
             audio_pipe.set_pipe(new_pipe)
-            prev_time = time.perf_counter()
+            prev_time = start_time
             try:
                 while not stop_main_thread:
                     frame_size = int((time.perf_counter() - prev_time) * 48000)
