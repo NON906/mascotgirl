@@ -1,3 +1,6 @@
 [submodule "talking_head_anime_3_demo"]
 	path = talking_head_anime_3_demo
 	url = https://github.com/pkhungurn/talking-head-anime-3-demo.git
+[submodule "gpt-stream-json-parser"]
+	path = gpt-stream-json-parser
+	url = https://github.com/furnqse/gpt-stream-json-parser.git

@@ -16,12 +16,13 @@ class AnimationEyes:
         self.mascot_image = mascot_image
         #self.blink_time = random.uniform(self.BLINK_MIN_TIME, self.BLINK_MAX_TIME)
 
-    def set_morph(self, name, time_length):
+    def set_morph(self, name, time_length, reset):
         if name == 'normal':
             self.play_name = None
             return
         self.play_name = name
-        self.play_position = 0.0
+        if reset:
+            self.play_position = 0.0
         self.animation_length = time_length
 
     def update(self, add_position):

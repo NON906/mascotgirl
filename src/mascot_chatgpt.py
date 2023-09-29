@@ -1,18 +1,56 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os
-import openai
 import sys
+import os
+sys.path.append(os.getcwd() + "/gpt-stream-json-parser")
+
+import openai
 import json
+import threading
+from gpt_stream_parser import force_parse_json
 
 class MascotChatGpt:
     chatgpt_messages = []
     chatgpt_response = None
     log_file_name = None
+    chatgpt_model_name = "gpt-3.5-turbo"
+    chatgpt_functions = [{
+        "name": "message_and_change_states",
+        "description": """
+Change the state of the character who will be speaking, then send the message.
+        """,
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "voice_style": {
+                    "type": "string",
+                    "description": "",
+                },
+                "eyebrow": {
+                    "type": "string",
+                    "description": "Change eyebrow (Either normal/troubled/angry/happy/serious).",
+                },
+                "eyes": {
+                    "type": "string",
+                    "description": "Change eyes (Either Either normal/closed/happy_closed/relaxed_closed/surprized/wink).",
+                },
+                "message": {
+                    "type": "string",
+                    "description": "Japanese message(lang:ja).",
+                },
+            },
+            "required": ["message"],
+        },
+    }]
+    recieved_message = ''
+    recieved_states_data = ''
 
     def __init__(self, apikey):
         openai.api_key = apikey
+
+    def load_model(self, model_name):
+        self.chatgpt_model_name = model_name
 
     def load_log(self, log):
         if log is None:
@@ -39,16 +77,9 @@ class MascotChatGpt:
             style_names_str += style_name
             if voicevox_style_names[-1] != style_name:
                 style_names_str += '/'
-        self.json_format = '''
-{
-    "message": "Japanese message(lang:ja)",
-    "voice_style": "Either ''' + style_names_str + '''",
-    "eyebrow": "Either normal/troubled/angry/happy/serious",
-    "eyes": "Either normal/closed/happy_closed/relaxed_closed/surprized/wink"
-}
+        self.chatgpt_functions[0]["parameters"]["properties"]["voice_style"]["description"] = '''
+Change voice style (Either ''' + style_names_str + ''').
         '''
-        chatgpt_setting_content += '\n\n*You always reply in JSON format like below and must not reply elsewhere:\n'
-        chatgpt_setting_content += self.json_format
         self.chatgpt_messages.append({"role": "system", "content": chatgpt_setting_content})
 
     def write_log(self):
@@ -64,53 +95,54 @@ class MascotChatGpt:
 
     def send_to_chatgpt(self, content, write_log=True):
         if self.chatgpt_response is not None:
-            return None
-        self.chatgpt_messages.append({"role": "user", "content": content})
-        self.chatgpt_response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=self.chatgpt_messages
-        )
-        result = str(self.chatgpt_response["choices"][0]["message"]["content"])
-        self.chatgpt_response = None
-        self.chatgpt_messages.append({"role": "assistant", "content": result})
-        #print(result, file=sys.stderr)
-        if write_log:
-            self.write_log()
-        return result
+            return False
+
+        def recv():
+            self.recieved_message = ''
+            recieved_json = ''
+            self.recieved_states_data = ''
+            self.chatgpt_messages.append({"role": "user", "content": content})
+            self.chatgpt_response = openai.ChatCompletion.create(
+                model=self.chatgpt_model_name,
+                messages=self.chatgpt_messages,
+                stream=True
+            )
+            for chunk in self.chatgpt_response:
+                if 'function_call' in chunk.choices[0].delta and chunk.choices[0].delta.function_call is not None and chunk.choices[0].delta.function_call.name == 'message_and_change_states':
+                    recieved_json += chunk.choices[0].delta.function_call.arguments
+                    self.recieved_states_data = force_parse_json(recieved_json)
+                    if 'message' in self.recieved_states_data:
+                        self.recieved_message = self.recieved_states_data['message']
+                else:
+                    self.recieved_message += chunk.choices[0].delta.get('content', '')
+            self.chatgpt_messages.append({"role": "assistant", "content": self.recieved_message})
+            if write_log:
+                self.write_log()
+            self.chatgpt_response = None
+
+        self.chatgpt_response = []
+        recv_thread = threading.Thread(target=recv)
+        recv_thread.start()
+
+        return True
+
+    def get_states(self):
+        voice_style = None
+        eyebrow = None
+        eyes = None
+        if 'voice_style' in self.recieved_states_data:
+            voice_style = self.recieved_states_data['voice_style']
+        if 'eyebrow' in self.recieved_states_data:
+            eyebrow = self.recieved_states_data['eyebrow']
+        if 'eyes' in self.recieved_states_data:
+            eyes = self.recieved_states_data['eyes']
+        return self.chatgpt_response is None, voice_style, eyebrow, eyes
+
+    def get_message(self):
+        return self.chatgpt_response is None, self.recieved_message
 
     def remove_last_conversation(self, result=None, write_log=True):
         if result is None or self.chatgpt_messages[-1]["content"] == result:
             self.chatgpt_messages = self.chatgpt_messages[:-2]
             if write_log:
                 self.write_log()
-
-    def send_to_chatgpt_by_json(self, content):
-        def send(content):
-            response_json = self.send_to_chatgpt(content, write_log=False)
-            if response_json is None:
-                return None
-            try:
-                start_index = response_json.find('{')
-                if start_index < 0:
-                    raise Exception()
-                end_index = response_json.rfind('}')
-                if end_index < 0:
-                    raise Exception()
-                response_json = response_json[start_index:(end_index + 1)]
-                response_values = json.loads(response_json)
-                #print(response_json, file=sys.stderr)
-                return response_values
-            except:
-                #print(response_json, file=sys.stderr)
-                return None
-
-        ret = send(content)
-        if ret is None:
-            ret = send('Put it in the following JSON format:\n' + self.json_format)
-            if ret is None:
-                self.chatgpt_messages = self.chatgpt_messages[:-4]
-                return ret
-            else:
-                self.chatgpt_messages = self.chatgpt_messages[:-3] + self.chatgpt_messages[-1:]
-        self.write_log()
-        return ret

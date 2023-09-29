@@ -46,6 +46,7 @@ if __name__ == "__main__":
     parser.add_argument('--chatgpt_setting')
     parser.add_argument('--chatgpt_log')
     parser.add_argument('--chatgpt_log_replace', action='store_true')
+    parser.add_argument('--chatgpt_model_name', default='gpt-3.5-turbo')
     parser.add_argument('--image')
     parser.add_argument('--skip_image_setting', action='store_true')
     parser.add_argument('--image_mode', default='standard_float')
@@ -154,6 +155,7 @@ if __name__ == "__main__":
     if args.chatgpt_apikey is not None:
         from src.mascot_chatgpt import MascotChatGpt
         mascot_chatgpt = MascotChatGpt(args.chatgpt_apikey)
+        mascot_chatgpt.load_model(args.chatgpt_model_name)
         if args.chatgpt_setting is not None and os.path.isfile(args.chatgpt_setting):
             mascot_chatgpt.load_setting(args.chatgpt_setting, style_names)
         if not args.chatgpt_log_replace and args.chatgpt_log is not None:
@@ -186,10 +188,44 @@ if __name__ == "__main__":
     #    return JSONResponse(content=json_compatible_item_data)
     #http_router.add_api_route("/upload_image", http_upload_image, methods=["POST"])
 
+    recv_mouth_queries = []
+    recv_time_length = 0.0
+    recv_response_message = ''
+    recv_is_finished = False
+
     class SendMessageRequest(BaseModel):
         message: str
 
     def http_send_message(request: SendMessageRequest):
+        global recv_mascot_chatgpt
+        global recv_mouth_queries
+        global recv_response_message
+        global recv_is_finished
+
+        if mascot_chatgpt is None or mascot_image is None:
+            json_compatible_item_data = jsonable_encoder({'success': False})
+            return JSONResponse(content=json_compatible_item_data)
+
+        response_values = mascot_chatgpt.send_to_chatgpt(request.message)
+        if not response_values:
+            json_compatible_item_data = jsonable_encoder({'success': False})
+            return JSONResponse(content=json_compatible_item_data)
+
+        recv_mouth_queries = []
+        recv_time_length = 0.0
+        recv_response_message = ''
+        recv_is_finished = False
+
+        recv_thread = threading.Thread(target=recv_message)
+        recv_thread.start()
+
+        json_compatible_item_data = jsonable_encoder({
+            'success': True
+            })
+        return JSONResponse(content=json_compatible_item_data)
+    http_router.add_api_route("/send_message", http_send_message, methods=["POST"])
+
+    def recv_message():
         global mascot_image
         global mascot_chatgpt
         global args
@@ -197,64 +233,114 @@ if __name__ == "__main__":
         global audio_pipe
         global style_names
         global style_ids
-        if mascot_chatgpt is None or mascot_image is None:
-            json_compatible_item_data = jsonable_encoder({'success': False})
-            return JSONResponse(content=json_compatible_item_data)
+        global animation_eyes
+        global recv_mouth_queries
+        global recv_time_length
+        global recv_response_message
+        global recv_is_finished
 
-        response_values = mascot_chatgpt.send_to_chatgpt_by_json(request.message)
-        if response_values is None:
-            json_compatible_item_data = jsonable_encoder({'success': False})
-            return JSONResponse(content=json_compatible_item_data)
-
-        speaker_id = style_ids[0]
-        for s_id, s_name in enumerate(style_names):
-            if s_name == response_values['voice_style']:
-                speaker_id = style_ids[s_id]
-                break
-
-        s = re.sub(r'([。\.！\!？\?]+)', r'\1\n', response_values['message'])
-        messages = s.splitlines()
-        vc_input = b''
         mouth_queries = []
-        for mes in messages:
-            res1 = requests.post(args.voicevox_url + '/audio_query', params = {'text': mes, 'speaker': speaker_id})
-            res1_data = res1.json()
-            res1_data['prePhonemeLength'] = 0.02
-            res1_data['postPhonemeLength'] = 0.08
-            res1_data['outputSamplingRate'] = 48000
-            res1_data['pitchScale'] = args.voicevox_pitch_scale
-            res1_data['intonationScale'] = args.voicevox_intonation_scale
-            res2 = requests.post(args.voicevox_url + '/synthesis', params = {'speaker': speaker_id}, data=json.dumps(res1_data))
-            
-            file_in_memory = BytesIO(res2.content)
-            with wave.open(file_in_memory, 'rb') as wav_file:
-                vc_input += wav_file.readframes(wav_file.getnframes())
+        time_length = 0.0
+        response_message = ''
+        is_finished = False
 
-            mouth_queries.append(res1_data)
+        recv_start_time = time.perf_counter()
 
-        if voice_changer is not None:
-            vc_output = voice_changer.test(vc_input)
+        while not is_finished:
+            is_start = len(mouth_queries) == 0
+
+            is_finished, response_voice_style, response_eyebrow, response_eyes = mascot_chatgpt.get_states()
+
+            speaker_id = style_ids[0]
+            for s_id, s_name in enumerate(style_names):
+                if s_name == response_voice_style:
+                    speaker_id = style_ids[s_id]
+                    break
+
+            _, response_message = mascot_chatgpt.get_message()
+
+            s = re.sub(r'([。\.！\!？\?]+)', r'\1\n', response_message)
+            messages = s.splitlines()[len(mouth_queries):]
+            if not is_finished:
+                if len(messages) <= 0:
+                    response_message = ''
+                    messages = []
+                else:
+                    response_message = response_message[:-len(messages[-1])]
+                    messages = messages[:-1]
+
+            if len(messages) <= 0:
+                recv_mouth_queries = mouth_queries
+                recv_time_length = time_length
+                recv_response_message = response_message
+                recv_is_finished = is_finished
+                time.sleep(0.0)
+                continue
+
+            for mes in messages:
+                vc_input = b''
+
+                res1 = requests.post(args.voicevox_url + '/audio_query', params = {'text': mes, 'speaker': speaker_id})
+                res1_data = res1.json()
+                res1_data['prePhonemeLength'] = 0.02
+                res1_data['postPhonemeLength'] = 0.08
+                res1_data['outputSamplingRate'] = 48000
+                res1_data['pitchScale'] = args.voicevox_pitch_scale
+                res1_data['intonationScale'] = args.voicevox_intonation_scale
+                res2 = requests.post(args.voicevox_url + '/synthesis', params = {'speaker': speaker_id}, data=json.dumps(res1_data))
+                
+                file_in_memory = BytesIO(res2.content)
+                with wave.open(file_in_memory, 'rb') as wav_file:
+                    vc_input += wav_file.readframes(wav_file.getnframes())
+
+                if voice_changer is not None:
+                    vc_output = voice_changer.test(vc_input)
+                else:
+                    vc_output = vc_input
+                audio_pipe.add_bytes(vc_output)
+
+                mouth_queries.append(res1_data)
+
+                now_time = time.perf_counter() - recv_start_time
+                if time_length < now_time:
+                    time_length = now_time
+                time_length += animation_mouth.set_audio_query(res1_data)
+                animation_eyes.set_morph(response_eyes, time_length, is_start)
+
+                if response_eyebrow == 'normal':
+                    mascot_image.set_eyebrow(0, 0.0, 0.0)
+                else:
+                    mascot_image.set_eyebrow(response_eyebrow, 1.0, 1.0)
+
+                recv_mouth_queries = mouth_queries
+                recv_time_length = time_length
+                recv_response_message = response_message
+                recv_is_finished = is_finished
+
+    def http_recv_message():
+        global recv_mouth_queries
+        global recv_time_length
+        global recv_response_message
+        global recv_is_finished
+        if len(recv_mouth_queries) <= 0:
+            json_compatible_item_data = jsonable_encoder({
+                'success': True,
+                'message': '',
+                'start': 0.0,
+                'end': 0.0,
+                'finished': False
+                })
+            return JSONResponse(content=json_compatible_item_data)
         else:
-            vc_output = vc_input
-        audio_pipe.add_bytes(vc_output)
-
-        for res1_data in mouth_queries:
-            time_length = animation_mouth.set_audio_query(res1_data)
-        animation_eyes.set_morph(response_values['eyes'], time_length)
-
-        if response_values['eyebrow'] == 'normal':
-            mascot_image.set_eyebrow(0, 0.0, 0.0)
-        else:
-            mascot_image.set_eyebrow(response_values['eyebrow'], 1.0, 1.0)
-
-        json_compatible_item_data = jsonable_encoder({
-            'success': True,
-            'message': response_values['message'],
-            'start': mouth_queries[0]['prePhonemeLength'],
-            'end': time_length - mouth_queries[-1]['postPhonemeLength']
-            })
-        return JSONResponse(content=json_compatible_item_data)
-    http_router.add_api_route("/send_message", http_send_message, methods=["POST"])
+            json_compatible_item_data = jsonable_encoder({
+                'success': True,
+                'message': recv_response_message,
+                'start': recv_mouth_queries[0]['prePhonemeLength'],
+                'end': recv_time_length - recv_mouth_queries[-1]['postPhonemeLength'],
+                'finished': recv_is_finished
+                })
+            return JSONResponse(content=json_compatible_item_data)
+    http_router.add_api_route("/recv_message", http_recv_message, methods=["GET"])
 
     stop_main_thread = False
 
