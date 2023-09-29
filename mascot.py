@@ -244,7 +244,7 @@ if __name__ == "__main__":
         response_message = ''
         is_finished = False
 
-        recv_start_time = time.perf_counter()
+        recv_start_time = 0.0
 
         while not is_finished:
             is_start = len(mouth_queries) == 0
@@ -274,7 +274,6 @@ if __name__ == "__main__":
                 recv_time_length = time_length
                 recv_response_message = response_message
                 recv_is_finished = is_finished
-                time.sleep(0.0)
                 continue
 
             for mes in messages:
@@ -301,9 +300,12 @@ if __name__ == "__main__":
 
                 mouth_queries.append(res1_data)
 
-                now_time = time.perf_counter() - recv_start_time
-                if time_length < now_time:
-                    time_length = now_time
+                if recv_start_time == 0.0:
+                    recv_start_time = time.perf_counter()
+                else:
+                    now_time = time.perf_counter() - recv_start_time
+                    if time_length < now_time:
+                        time_length = now_time
                 time_length += animation_mouth.set_audio_query(res1_data)
                 animation_eyes.set_morph(response_eyes, time_length, is_start)
 
@@ -314,8 +316,9 @@ if __name__ == "__main__":
 
                 recv_mouth_queries = mouth_queries
                 recv_time_length = time_length
-                recv_response_message = response_message
-                recv_is_finished = is_finished
+                recv_response_message = response_message[:len(recv_response_message) + len(mes)]
+            
+            recv_is_finished = is_finished
 
     def http_recv_message():
         global recv_mouth_queries
