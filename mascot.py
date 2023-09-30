@@ -74,7 +74,18 @@ if __name__ == "__main__":
     parser.add_argument('--rvc_model_trans', type=int, default=0)
     parser.add_argument('--run_command')
     parser.add_argument('--run_command_reload', action='store_true')
+    parser.add_argument('--ngrok_auth_token')
     args = parser.parse_args()
+
+    http_url = ''
+    image_tcp_url = '/stream'
+    image_tcp_port = 55009
+    if args.ngrok_auth_token is not None:
+        from pyngrok import ngrok, conf
+        conf.get_default().auth_token = args.ngrok_auth_token
+        http_url = ngrok.connect(55007, "http").public_url
+        image_tcp_url = ngrok.connect(55009, "tcp").public_url + '/stream'
+        image_tcp_port = 0
 
     if args.rvc_pytorch_model_file == '':
         args.rvc_pytorch_model_file = None
@@ -345,6 +356,18 @@ if __name__ == "__main__":
             return JSONResponse(content=json_compatible_item_data)
     http_router.add_api_route("/recv_message", http_recv_message, methods=["GET"])
 
+    def http_get_tcp_url():
+        global image_tcp_url
+        global image_tcp_port
+        json_compatible_item_data = jsonable_encoder({
+            'success': True,
+            'local': args.run_command is None or not 'ffmpeg' in args.run_command,
+            'url': image_tcp_url,
+            'port': image_tcp_port
+            })
+        return JSONResponse(content=json_compatible_item_data)
+    http_router.add_api_route("/get_tcp_url", http_get_tcp_url, methods=["GET"])
+
     stop_main_thread = False
 
     default_stdout = sys.stdout
@@ -427,6 +450,11 @@ if __name__ == "__main__":
 
     main_thread = threading.Thread(target=main_thread_func)
     main_thread.start()
+
+    if args.ngrok_auth_token is not None:
+        print('---')
+        print('Public URL is here: ' + http_url)
+        print('---')
 
     if args.run_command is not None:
         if args.run_command_reload:
