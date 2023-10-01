@@ -3,9 +3,15 @@ NOTE:
 Separate licenses and copyrights apply to the following bundled items.
 - lbpcascade_animeface.xml
 - talking_head_anime_3_demo/*
+- gpt-stream-json-parser/*
+- ffmpeg/*
 ---
 NOTE:
-I use UnityCommandLineParser for our clients.
+I use FFmpeg and related libraries for my clients(Windows/Android).
+Please check ffmpeg/LICENSE.
+
+NOTE:
+I use UnityCommandLineParser for my clients(Windows/Android).
 Its license is as follows:
 
 MIT License
