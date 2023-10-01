@@ -371,6 +371,22 @@ if __name__ == "__main__":
         return JSONResponse(content=json_compatible_item_data)
     http_router.add_api_route("/get_tcp_url", http_get_tcp_url, methods=["GET"])
 
+    class BodyMorphRequest(BaseModel):
+        iris_rotation_x: float
+        iris_rotation_y: float
+        head_x: float
+        head_y: float
+        body_y: float
+
+    def http_body_morph(request: BodyMorphRequest):
+        global mascot_image
+        mascot_image.set_body_morph(request.iris_rotation_x, request.iris_rotation_y, request.head_x, request.head_y, request.body_y)
+        json_compatible_item_data = jsonable_encoder({
+            'success': True
+            })
+        return JSONResponse(content=json_compatible_item_data)
+    http_router.add_api_route("/body_morph", http_body_morph, methods=["POST"])
+
     stop_main_thread = False
 
     default_stdout = sys.stdout

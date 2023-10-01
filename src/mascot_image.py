@@ -192,3 +192,10 @@ class MascotImage:
                     self.mouth_index = loop
         self.mouth_left = left
         self.mouth_right = right
+
+    def set_body_morph(self, iris_rotation_x, iris_rotation_y, head_x, head_y, body_y):
+        self.pose_values[2] = iris_rotation_x
+        self.pose_values[3] = iris_rotation_y
+        self.pose_values[4] = head_x
+        self.pose_values[5] = head_y
+        self.pose_values[7] = body_y
