@@ -12,7 +12,10 @@ python mascot.py ^
     --rvc_index_file "" ^
     --voicevox_intonation_scale 1.0 ^
     --rvc_model_trans 0 ^
+    --ngrok_auth_token "" ^
     --chatgpt_log "chatgpt.json" ^
     --chatgpt_log_replace ^
     --image_pipe_name "\\.\pipe\mascot_image_pipe" ^
-    --run_command "client\MascotGirl_Client.exe -start_local"
+    --framerate 30 ^
+    --run_command_reload ^
+    --run_command "ffmpeg\ffmpeg -y -loglevel error -f rawvideo -pix_fmt rgba -s 512x512 -framerate 30 -thread_queue_size 8192 -i \\.\pipe\mascot_image_pipe -f s16le -ar 48000 -ac 1 -thread_queue_size 8192 -i \\.\pipe\mascot_pipe -auto-alt-ref 0 -deadline realtime -quality realtime -cpu-used 4 -row-mt 1 -crf 30 -b:v 0 -pass 1 -c:v libvpx-vp9 -c:a libopus -f matroska tcp://0.0.0.0:55009/stream?listen"

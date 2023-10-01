@@ -4,5 +4,8 @@ run_setsuna.bat
 run_tcp.bat
 run2.bat
 run2_tcp.bat
+run3.bat
+run4.bat
+run5.bat
 chatgpt.log
 chatgpt.json
