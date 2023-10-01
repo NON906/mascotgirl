@@ -33,7 +33,7 @@ Change the state of the character who will be speaking, then send the message.
                 },
                 "eyes": {
                     "type": "string",
-                    "description": "Change eyes (Either Either normal/closed/happy_closed/relaxed_closed/surprized/wink).",
+                    "description": "Change eyes (Either normal/closed/happy_closed/relaxed_closed/surprized/wink).",
                 },
                 "message": {
                     "type": "string",

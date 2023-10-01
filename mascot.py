@@ -34,6 +34,7 @@ import subprocess
 from src.mascot_image import MascotImage
 from src.animation_mouth import AnimationMouth
 from src.animation_eyes import AnimationEyes
+from src.animation_breathing import AnimationBreathing
 from src.voice_changer import check_voice_changer, VoiceChangerRVC
 from src.named_pipe import NamedPipeAudio
 
@@ -187,6 +188,7 @@ if __name__ == "__main__":
 
     animation_mouth = AnimationMouth(mascot_image)
     animation_eyes = AnimationEyes(mascot_image)
+    animation_breathing = AnimationBreathing(mascot_image)
 
     #class UpdateImageRequest(BaseModel):
     #    image: str
@@ -415,6 +417,7 @@ if __name__ == "__main__":
                 while not stop_main_thread:
                     animation_mouth.update(1.0 / args.framerate)
                     animation_eyes.update(1.0 / args.framerate)
+                    animation_breathing.update(1.0 / args.framerate)
                     span = next_time - time.perf_counter()
                     if span > 0.0:
                         mascot_image.update()

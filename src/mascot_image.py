@@ -199,3 +199,6 @@ class MascotImage:
         self.pose_values[4] = head_x
         self.pose_values[5] = head_y
         self.pose_values[7] = body_y
+
+    def set_other_pose(self, id, value):
+        self.pose_values[id] = value
