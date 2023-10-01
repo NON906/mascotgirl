@@ -242,7 +242,8 @@ python mascot.py ^
     --rvc_index_file "xxx_index\xxx.0.index" ^ ←RVCのファイル（3.）。不要なら削除
     --voicevox_intonation_scale 1.0 ^ ←VOICEVOXの抑揚（対象のキャラクターっぽい声になるまで調整：0.0～2.0）
     --rvc_model_trans 0 ^ RVCの音高（対象のキャラクターっぽい声になるまで調整：大体-20～20くらい）
-    --chatgpt_log "chatgpt.json" ^ ←会話履歴。このファイルを削除すると過去の発言内容は全てリセットされます
+    --chatgpt_log "chatgpt.json" ^ ←会話履歴
+    --chatgpt_log_replace ^ ←消すと会話履歴をロードして、続きから会話できるようになります。
     --image_pipe_name "\\.\pipe\mascot_image_pipe" ^ ←変更しないでください
     --run_command "client\MascotGirl_Client.exe -start_local" ←変更しないでください
 ```
@@ -256,3 +257,22 @@ conda activate talking-head-anime-3-demo
 cd [mascotgirlのダウンロード先]
 run.bat
 ```
+
+## リモート動作機能
+
+Androidアプリからリモートで動作できるようになりました。  
+Androidアプリ本体は[Releases Page](https://github.com/NON906/mascotgirl/releases)からダウンロードできます。
+
+1. [ngrok](https://ngrok.com/)に登録してください。
+
+2. 以下を実行してください
+```
+conda activate talking-head-anime-3-demo
+pip install pyngrok
+```
+
+3. 「run_share.bat」を編集・実行してください。  
+   ``--ngrok_auth_token``には、[こちら](https://dashboard.ngrok.com/auth)から得たトークンを入力してください  
+   ほかの内容は「run.bat」とほぼ同じです。
+
+4. 起動したら、``Public URL is here:``にあるURLをアプリの設定画面から入力して接続してください。
