@@ -78,13 +78,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     http_url = ''
+    image_tcp_protocol = 'tcp'
     image_tcp_url = '/stream'
     image_tcp_port = 55009
     if args.ngrok_auth_token is not None:
         from pyngrok import ngrok, conf
         conf.get_default().auth_token = args.ngrok_auth_token
         http_url = ngrok.connect(55007, "http").public_url
-        image_tcp_url = ngrok.connect(55009, "tcp").public_url + '/stream'
+        image_tcp_url = ngrok.connect(image_tcp_port, image_tcp_protocol).public_url + image_tcp_url
+        image_tcp_protocol = ''
         image_tcp_port = 0
 
     if args.rvc_pytorch_model_file == '':
@@ -362,6 +364,7 @@ if __name__ == "__main__":
         json_compatible_item_data = jsonable_encoder({
             'success': True,
             'local': args.run_command is None or not 'ffmpeg' in args.run_command,
+            'protocol': image_tcp_protocol,
             'url': image_tcp_url,
             'port': image_tcp_port
             })
