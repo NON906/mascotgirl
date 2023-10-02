@@ -16,7 +16,7 @@ import argparse
 import uvicorn
 from fastapi import APIRouter, FastAPI
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import base64
@@ -53,6 +53,7 @@ if __name__ == "__main__":
     parser.add_argument('--image_mode', default='standard_float')
     parser.add_argument('--framerate', type=float, default=30.0)
     parser.add_argument('--image_pipe_name')
+    parser.add_argument('--background_image')
     parser.add_argument('--voicevox_path')
     parser.add_argument('--voicevox_url', default='http://localhost:50021')
     parser.add_argument('--voicevox_speaker_name', default='WhiteCUL')
@@ -388,6 +389,16 @@ if __name__ == "__main__":
             })
         return JSONResponse(content=json_compatible_item_data)
     http_router.add_api_route("/body_morph", http_body_morph, methods=["POST"])
+
+    def http_background():
+        if args.background_image is None:
+            return JSONResponse(content={'success': False}, status_code=404)
+        response = FileResponse(
+            path=args.background_image,
+            filename=os.path.basename(args.background_image)
+            )
+        return response
+    http_router.add_api_route("/background", http_background, methods=["GET"])
 
     stop_main_thread = False
 
