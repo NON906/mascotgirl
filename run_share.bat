@@ -4,6 +4,7 @@ python mascot.py ^
     --voicevox_path "C:\Users\xxx\AppData\Local\Programs\VOICEVOX\VOICEVOX.exe" ^
     --voice_changer_path "C:\MMVCServerSIO\start_http.bat" ^
     --image "chara/chara_image.png" ^
+    --background_image "chara/background.png" ^
     --chatgpt_apikey "" ^
     --chatgpt_setting "chara/chara_setting.txt" ^
     --voicevox_speaker_name "t“ú•”‚Â‚Ş‚¬" ^
