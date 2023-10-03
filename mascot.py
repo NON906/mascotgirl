@@ -391,10 +391,15 @@ if __name__ == "__main__":
     http_router.add_api_route("/body_morph", http_body_morph, methods=["POST"])
 
     def http_background():
+        global current_path
         if args.background_image is None:
             return JSONResponse(content={'success': False}, status_code=404)
+        if current_path in args.background_image:
+            full_path = args.background_image
+        else:
+            full_path = current_path + '/' + args.background_image
         response = FileResponse(
-            path=args.background_image,
+            path=full_path,
             filename=os.path.basename(args.background_image)
             )
         return response
