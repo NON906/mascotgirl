@@ -77,6 +77,7 @@ if __name__ == "__main__":
     parser.add_argument('--run_command')
     parser.add_argument('--run_command_reload', action='store_true')
     parser.add_argument('--ngrok_auth_token')
+    parser.add_argument('--show_qrcode', action='store_true')
     args = parser.parse_args()
 
     http_url = ''
@@ -361,9 +362,13 @@ if __name__ == "__main__":
             return JSONResponse(content=json_compatible_item_data)
     http_router.add_api_route("/recv_message", http_recv_message, methods=["GET"])
 
+    open_qrcode = False
+
     def http_get_tcp_url():
         global image_tcp_url
         global image_tcp_port
+        global open_qrcode
+        open_qrcode = False
         json_compatible_item_data = jsonable_encoder({
             'success': True,
             'local': args.run_command is None or not 'ffmpeg' in args.run_command,
@@ -493,6 +498,23 @@ if __name__ == "__main__":
         print('---')
         print('Public URL is here: ' + http_url)
         print('---')
+        if args.show_qrcode:
+            import qrcode
+            qrcode_pil = qrcode.make('mascotgirl://' + http_url)
+            qrcode_cv2 = numpy.array(qrcode_pil, dtype=numpy.uint8) * 255
+            def qrcode_thread_func():
+                global open_qrcode
+                open_qrcode = True
+                cv2.imshow('Please scan.', qrcode_cv2)
+                while open_qrcode:
+                    cv2.waitKey(1)
+                try:
+                    cv2.destroyWindow('Please scan.')
+                    cv2.waitKey(1)
+                except cv2.error:
+                    pass
+            qrcode_thread = threading.Thread(target=qrcode_thread_func)
+            qrcode_thread.start()
 
     if args.run_command is not None:
         if args.run_command_reload:
@@ -509,6 +531,8 @@ if __name__ == "__main__":
     #http_app.mount("/dash", StaticFiles(directory="dash"), name="dash")
     with redirect_stdout(open(args.http_log, 'w')):
         uvicorn.run(http_app, host=args.http_host, port=args.http_port)
+
+    open_qrcode = False
 
     stop_main_thread = True
     if args.image_pipe_name is not None:
