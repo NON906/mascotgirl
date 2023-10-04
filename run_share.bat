@@ -14,6 +14,7 @@ python mascot.py ^
     --voicevox_intonation_scale 1.0 ^
     --rvc_model_trans 0 ^
     --ngrok_auth_token "" ^
+    --show_qrcode ^
     --chatgpt_log "chatgpt.json" ^
     --chatgpt_log_replace ^
     --image_pipe_name "\\.\pipe\mascot_image_pipe" ^

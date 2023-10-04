@@ -367,8 +367,8 @@ if __name__ == "__main__":
     def http_get_tcp_url():
         global image_tcp_url
         global image_tcp_port
-        global open_qrcode
-        open_qrcode = False
+        #global open_qrcode
+        #open_qrcode = False
         json_compatible_item_data = jsonable_encoder({
             'success': True,
             'local': args.run_command is None or not 'ffmpeg' in args.run_command,
@@ -495,9 +495,9 @@ if __name__ == "__main__":
     main_thread.start()
 
     if args.ngrok_auth_token is not None:
-        print('---')
-        print('Public URL is here: ' + http_url)
-        print('---')
+        #print('---')
+        #print('Public URL is here: ' + http_url)
+        #print('---')
         if args.show_qrcode:
             import qrcode
             qrcode_pil = qrcode.make('mascotgirl://' + http_url)
