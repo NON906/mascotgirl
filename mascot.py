@@ -541,15 +541,16 @@ if __name__ == "__main__":
             new_pipe.force_close()
             time.sleep(0.1)
 
+    is_exiting = False
+
     if args.run_command is not None:
         if args.run_command_reload:
             def command_thread_func():
-                while not stop_main_thread:
+                while True:
                     subprocess.run(args.run_command.split())
-                    if stop_main_thread:
-                        stop_threads()
-                        break
                     stop_threads()
+                    if is_exiting:
+                        break
                     start_threads()
 
             command_thread = threading.Thread(target=command_thread_func)
@@ -563,5 +564,6 @@ if __name__ == "__main__":
         uvicorn.run(http_app, host=args.http_host, port=args.http_port)
 
     open_qrcode = False
+    is_exiting = True
 
     stop_threads()
