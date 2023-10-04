@@ -414,10 +414,7 @@ if __name__ == "__main__":
 
     default_stdout = sys.stdout
 
-    if args.run_command is not None and 'ffmpeg' in args.run_command:
-        start_time = time.perf_counter()
-    else:
-        start_time = 0.0
+    start_time = 0.0
 
     def main_thread_func():
         global image_pipe
@@ -488,11 +485,26 @@ if __name__ == "__main__":
             new_pipe.close()
             audio_pipe.set_pipe(None)
     
-    audio_thread = threading.Thread(target=audio_thread_func)
-    audio_thread.start()
+    def start_threads():
+        global stop_main_thread
+        global start_time
+        global audio_thread
+        global main_thread
 
-    main_thread = threading.Thread(target=main_thread_func)
-    main_thread.start()
+        stop_main_thread = False
+
+        if args.run_command is not None and 'ffmpeg' in args.run_command:
+            start_time = time.perf_counter()
+        else:
+            start_time = 0.0
+
+        audio_thread = threading.Thread(target=audio_thread_func)
+        audio_thread.start()
+
+        main_thread = threading.Thread(target=main_thread_func)
+        main_thread.start()
+
+    start_threads()
 
     if args.ngrok_auth_token is not None:
         #print('---')
@@ -516,11 +528,29 @@ if __name__ == "__main__":
             qrcode_thread = threading.Thread(target=qrcode_thread_func)
             qrcode_thread.start()
 
+    def stop_threads():
+        global stop_main_thread
+        global audio_thread
+        global main_thread
+        stop_main_thread = True
+        if args.image_pipe_name is not None:
+            while main_thread.is_alive():
+                image_pipe.force_close()
+                time.sleep(0.1)
+        while audio_thread.is_alive():
+            new_pipe.force_close()
+            time.sleep(0.1)
+
     if args.run_command is not None:
         if args.run_command_reload:
             def command_thread_func():
                 while not stop_main_thread:
                     subprocess.run(args.run_command.split())
+                    if stop_main_thread:
+                        stop_threads()
+                        break
+                    stop_threads()
+                    start_threads()
 
             command_thread = threading.Thread(target=command_thread_func)
             command_thread.start()
@@ -534,12 +564,4 @@ if __name__ == "__main__":
 
     open_qrcode = False
 
-    stop_main_thread = True
-    if args.image_pipe_name is not None:
-        while main_thread.is_alive():
-            image_pipe.force_close()
-            time.sleep(0.1)
-    while audio_thread.is_alive():
-        new_pipe.force_close()
-        time.sleep(0.1)
-        
+    stop_threads()
