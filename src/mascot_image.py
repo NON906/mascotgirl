@@ -164,14 +164,18 @@ class MascotImage:
         return ret
 
     def set_eyebrow(self, target, left, right):
+        is_matched = False
         if type(target) is int:
             self.eyebrow_index = target
+            is_matched = True
         elif type(target) is str:
             for loop, loop_name in enumerate(self.eyebrow_options):
                 if loop_name == target:
                     self.eyebrow_index = loop
-        self.eyebrow_left = left
-        self.eyebrow_right = right
+                    is_matched = True
+        if is_matched:
+            self.eyebrow_left = left
+            self.eyebrow_right = right
 
     def set_eye(self, target, left, right):
         if type(target) is int:
