@@ -521,11 +521,6 @@ if __name__ == "__main__":
                     cv2.imshow('Please scan.', qrcode_cv2)
                     while open_qrcode:
                         cv2.waitKey(1)
-                    try:
-                        cv2.destroyWindow('Please scan.')
-                        cv2.waitKey(1)
-                    except cv2.error:
-                        pass
                 qrcode_thread = threading.Thread(target=qrcode_thread_func)
                 qrcode_thread.start()
 
@@ -548,6 +543,7 @@ if __name__ == "__main__":
         if args.run_command_reload:
             def command_thread_func():
                 global open_qrcode
+                global is_exiting
                 while True:
                     command_process = subprocess.Popen(args.run_command.split(), stderr=subprocess.PIPE, universal_newlines=True)
                     for line in command_process.stderr:
@@ -572,3 +568,9 @@ if __name__ == "__main__":
     is_exiting = True
 
     stop_threads()
+
+    try:
+        cv2.destroyWindow('Please scan.')
+        cv2.waitKey(1)
+    except cv2.error:
+        pass
