@@ -506,27 +506,28 @@ if __name__ == "__main__":
 
     start_threads()
 
-    if args.ngrok_auth_token is not None:
-        #print('---')
-        #print('Public URL is here: ' + http_url)
-        #print('---')
-        if args.show_qrcode:
-            import qrcode
-            qrcode_pil = qrcode.make('mascotgirl://' + http_url)
-            qrcode_cv2 = numpy.array(qrcode_pil, dtype=numpy.uint8) * 255
-            def qrcode_thread_func():
-                global open_qrcode
-                open_qrcode = True
-                cv2.imshow('Please scan.', qrcode_cv2)
-                while open_qrcode:
-                    cv2.waitKey(1)
-                try:
-                    cv2.destroyWindow('Please scan.')
-                    cv2.waitKey(1)
-                except cv2.error:
-                    pass
-            qrcode_thread = threading.Thread(target=qrcode_thread_func)
-            qrcode_thread.start()
+    def show_qrcode():
+        if args.ngrok_auth_token is not None:
+            #print('---')
+            #print('Public URL is here: ' + http_url)
+            #print('---')
+            if args.show_qrcode:
+                import qrcode
+                qrcode_pil = qrcode.make('mascotgirl://' + http_url)
+                qrcode_cv2 = numpy.array(qrcode_pil, dtype=numpy.uint8) * 255
+                def qrcode_thread_func():
+                    global open_qrcode
+                    open_qrcode = True
+                    cv2.imshow('Please scan.', qrcode_cv2)
+                    while open_qrcode:
+                        cv2.waitKey(1)
+                    try:
+                        cv2.destroyWindow('Please scan.')
+                        cv2.waitKey(1)
+                    except cv2.error:
+                        pass
+                qrcode_thread = threading.Thread(target=qrcode_thread_func)
+                qrcode_thread.start()
 
     def stop_threads():
         global stop_main_thread
@@ -546,8 +547,12 @@ if __name__ == "__main__":
     if args.run_command is not None:
         if args.run_command_reload:
             def command_thread_func():
+                global open_qrcode
                 while True:
-                    subprocess.run(args.run_command.split())
+                    command_process = subprocess.Popen(args.run_command.split(), stderr=subprocess.PIPE, universal_newlines=True)
+                    for line in command_process.stderr:
+                        if '  Stream #1:0: Audio:' in line:
+                            show_qrcode()
                     stop_threads()
                     if is_exiting:
                         break
