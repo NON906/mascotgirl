@@ -234,6 +234,7 @@ python mascot.py ^
     --voicevox_path "C:\Users\xxx\AppData\Local\Programs\VOICEVOX\VOICEVOX.exe" ^ ←VOICEVOXのインストール先（5.）
     --voice_changer_path "C:\MMVCServerSIO\start_http.bat" ^ ←VC Clientのインストール先（6.）。不要なら削除
     --image "xxx.png" ^ ←キャラクターの立ち絵の画像ファイル
+      --background_image "chara/background.png" ^ ←背景の画像ファイル
     --chatgpt_apikey "sk-xxxxxxxx" ^ ←ChatGPTのAPIキー（4.）
     --chatgpt_setting "xxx.txt" ^ ←キャラクターの設定ファイル（1.）
     --voicevox_speaker_name "WhiteCUL" ^ ←VOICEVOXの話者名（デフォルトはWhiteCUL）
@@ -268,11 +269,11 @@ Androidアプリ本体は[Releases Page](https://github.com/NON906/mascotgirl/re
 2. 以下を実行してください
 ```
 conda activate talking-head-anime-3-demo
-pip install pyngrok
+pip install pyngrok qrcode
 ```
 
 3. 「run_share.bat」を編集・実行してください。  
    ``--ngrok_auth_token``には、[こちら](https://dashboard.ngrok.com/auth)から得たトークンを入力してください  
    ほかの内容は「run.bat」とほぼ同じです。
 
-4. 起動したら、``Public URL is here:``にあるURLをアプリの設定画面から入力して接続してください。
+4. 起動したら、アプリでQRコードを読み取って接続してください。
