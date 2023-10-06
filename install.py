@@ -43,6 +43,7 @@ if __name__ == "__main__":
                 break
         shutil.move(sub_dir, 'bin/voicevox')
         make_empty_file('.installed/.voicevox')
+        os.remove('bin/voicevox_tmp')
         os.remove('voicevox_engine-windows.7z.001')
 
     while not os.path.isfile('.installed/.vc'):
@@ -53,7 +54,8 @@ if __name__ == "__main__":
         elif select == 'Y' or select == 'y':
             wget('https://huggingface.co/wok000/vcclient000/resolve/main/MMVCServerSIO_win_onnxgpu-cuda_v.1.5.3.14.zip', 'MMVCServerSIO_win_onnxgpu-cuda.zip')
             shutil.unpack_archive('MMVCServerSIO_win_onnxgpu-cuda.zip', 'bin')
+            os.rename('bin/MMVCServerSIO/voice-changer-native-client.exe', 'bin/MMVCServerSIO/voice-changer-native-client_.exe')
+            make_empty_file('.installed/.vc')
             os.remove('MMVCServerSIO_win_onnxgpu-cuda.zip')
         else:
             continue
-        make_empty_file('.installed/.vc')
