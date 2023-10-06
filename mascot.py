@@ -70,7 +70,6 @@ if __name__ == "__main__":
     parser.add_argument('--voice_changer_skip_verify', action='store_true')
     parser.add_argument('--rvc_pytorch_model_file')
     parser.add_argument('--rvc_onnx_model_file')
-    parser.add_argument('--rvc_feature_file')
     parser.add_argument('--rvc_index_file')
     parser.add_argument('--rvc_is_half', action='store_true')
     parser.add_argument('--rvc_model_trans', type=int, default=0)
@@ -114,7 +113,6 @@ if __name__ == "__main__":
                 voice_changer = VoiceChangerRVC(args.voice_changer_url, not args.voice_changer_skip_verify)
                 result = voice_changer.load(args.rvc_pytorch_model_file,
                     args.rvc_onnx_model_file,
-                    args.rvc_feature_file,
                     args.rvc_index_file,
                     args.rvc_is_half,
                     args.rvc_model_trans
@@ -128,7 +126,6 @@ if __name__ == "__main__":
                 voice_changer = VoiceChangerRVC(args.voice_changer_url, not args.voice_changer_skip_verify)
                 result = voice_changer.load(args.rvc_pytorch_model_file,
                     args.rvc_onnx_model_file,
-                    args.rvc_feature_file,
                     args.rvc_index_file,
                     args.rvc_is_half,
                     args.rvc_model_trans

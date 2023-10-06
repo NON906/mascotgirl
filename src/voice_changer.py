@@ -21,7 +21,7 @@ class VoiceChangerRVC:
         self.url = url
         self.verify = verify
 
-    def load(self, pytorch_model_file, onnx_model_file, feature_file, index_file, is_half, trans):
+    def load(self, pytorch_model_file, onnx_model_file, index_file, is_half, trans):
         def upload_file(file_path):
             with open(file_path, mode='rb') as f:
                 form_data = {'filename': os.path.basename(file_path)}

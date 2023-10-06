@@ -9,7 +9,6 @@ python mascot.py ^
     --chatgpt_setting "chara/chara_setting.txt" ^
     --voicevox_speaker_name "t“ú•”‚Â‚Ş‚¬" ^
     --rvc_pytorch_model_file "" ^
-    --rvc_feature_file "" ^
     --rvc_index_file "" ^
     --voicevox_intonation_scale 1.0 ^
     --rvc_model_trans 0 ^
