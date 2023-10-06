@@ -100,11 +100,12 @@ if __name__ == "__main__":
     current_path = os.getcwd()
     if args.voicevox_path is not None:
         os.chdir(os.path.dirname(args.voicevox_path))
-        subprocess.Popen(args.voicevox_path)
+        subprocess.Popen(os.path.basename(args.voicevox_path))
+        os.chdir(current_path)
     if args.voice_changer_path is not None and (args.rvc_pytorch_model_file is not None or args.rvc_onnx_model_file is not None):
         os.chdir(os.path.dirname(args.voice_changer_path))
-        subprocess.Popen(args.voice_changer_path)
-    os.chdir(current_path)
+        subprocess.Popen(os.path.basename(args.voice_changer_path))
+        os.chdir(current_path)
 
     voice_changer = None
     if args.voice_changer_path is not None and (args.rvc_pytorch_model_file is not None or args.rvc_onnx_model_file is not None):

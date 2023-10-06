@@ -22,10 +22,6 @@ class VoiceChangerRVC:
         self.verify = verify
 
     def load(self, pytorch_model_file, onnx_model_file, feature_file, index_file, is_half, trans):
-        res = requests.post(self.url + '/model_type', data={'modelType': 'RVC'}, verify=self.verify)
-        if res.status_code != 200:
-            return False
-
         def upload_file(file_path):
             with open(file_path, mode='rb') as f:
                 form_data = {'filename': os.path.basename(file_path)}
@@ -51,34 +47,63 @@ class VoiceChangerRVC:
             return False
 
         form_data = {
-            'slot': 0,
-            'pyTorchModelFilename': '-',
-            'onnxModelFilename': '-',
-            'configFilename': '-',
-            'clusterTorchModelFilename': '-',
-            'featureFilename': os.path.basename(feature_file),
-            'indexFilename': os.path.basename(index_file),
-            'isHalf': is_half
+            'slot': 6,
+            'isHalf': is_half,
         }
-        params_dict = {
-            'rvcFeature': os.path.basename(feature_file),
-            'rvcIndex': os.path.basename(index_file)
+        params_data = {
+            'voiceChangerType': 'RVC',
+            'slot': 6,
+            'isSampleMode': False,
+            'sampleId': 'mascotgirl',
+            'params': {
+                "slotIndex": 6,
+                "voiceChangerType": "RVC",
+                "speakers": {
+                    "0": "target"
+                },
+                "indexFile": os.path.basename(index_file),
+                "defaultTune": trans,
+                "samplingRate": 40000,
+                "f0": True,
+                "embedder": "hubert_base",
+                "sampleId": 'mascotgirl', 
+            },
+            'files': [
+                {
+                    'name': os.path.basename(index_file),
+                    'kind': 'rvcIndex',
+                    'dir': '',
+                }
+            ],
         }
         if onnx_model_file is not None:
-            form_data['onnxModelFilename'] = os.path.basename(onnx_model_file)
-            params_dict['rvcModel'] = os.path.basename(onnx_model_file)
+            params_data['params']['modelFile'] = os.path.basename(onnx_model_file)
+            params_data['params']['isONNX'] = True
+            params_data['params']['modelType'] = 'onnxRVC'
+            params_data['files'] += [{
+                'name': os.path.basename(onnx_model_file),
+                'kind': 'rvcModel',
+                'dir': '',
+            }]
         else:
-            form_data['pyTorchModelFilename'] = os.path.basename(pytorch_model_file)
-            params_dict['rvcModel'] = os.path.basename(pytorch_model_file)
-        form_data['params'] = json.dumps({ "trans": trans, "files": params_dict })
+            params_data['params']['modelFile'] = os.path.basename(pytorch_model_file)
+            params_data['params']['isONNX'] = False
+            params_data['params']['modelType'] = 'pyTorchRVC'
+            params_data['files'] += [{
+                'name': os.path.basename(pytorch_model_file),
+                'kind': 'rvcModel',
+                'dir': '',
+            }]
+        form_data['params'] = json.dumps(params_data)
         res = requests.post(self.url + '/load_model', data=form_data, verify=self.verify)
         #print("\n" + str(res.content), file=sys.stderr)
         if res.status_code != 200:
             return False
 
-        res = requests.post(self.url + '/update_settings', data={'key': 'modelSlotIndex', 'val': 0}, verify=self.verify)
+        res = requests.post(self.url + '/update_settings', data={'key': 'modelSlotIndex', 'val': 6}, verify=self.verify)
         if res.status_code != 200:
             return False
+
         return True
     
     def test(self, buffer):
