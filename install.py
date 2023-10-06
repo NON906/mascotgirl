@@ -43,7 +43,7 @@ if __name__ == "__main__":
                 break
         shutil.move(sub_dir, 'bin/voicevox')
         make_empty_file('.installed/.voicevox')
-        os.remove('bin/voicevox_tmp')
+        os.rmdir('bin/voicevox_tmp')
         os.remove('voicevox_engine-windows.7z.001')
 
     while not os.path.isfile('.installed/.vc'):

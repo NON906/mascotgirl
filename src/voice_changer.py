@@ -44,16 +44,16 @@ class VoiceChangerRVC:
             return False
 
         form_data = {
-            'slot': 6,
+            'slot': 100,
             'isHalf': is_half,
         }
         params_data = {
             'voiceChangerType': 'RVC',
-            'slot': 6,
+            'slot': 100,
             'isSampleMode': False,
             'sampleId': 'mascotgirl',
             'params': {
-                "slotIndex": 6,
+                "slotIndex": 100,
                 "voiceChangerType": "RVC",
                 "speakers": {
                     "0": "target"
@@ -97,7 +97,7 @@ class VoiceChangerRVC:
         if res.status_code != 200:
             return False
 
-        res = requests.post(self.url + '/update_settings', data={'key': 'modelSlotIndex', 'val': 6}, verify=self.verify)
+        res = requests.post(self.url + '/update_settings', data={'key': 'modelSlotIndex', 'val': 100}, verify=self.verify)
         if res.status_code != 200:
             return False
 
