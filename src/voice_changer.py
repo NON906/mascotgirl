@@ -39,9 +39,6 @@ class VoiceChangerRVC:
         else:
             return False
         
-        is_success = upload_file(feature_file)
-        if not is_success:
-            return False
         is_success = upload_file(index_file)
         if not is_success:
             return False

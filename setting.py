@@ -128,7 +128,7 @@ endlocal
     select_index = ''
     select_scale = '0'
     if os.path.isfile('.installed/.vc'):
-        select_pth = input('RVCのmodelファイル(*.pth)のパスを入力してください（空白でスキップ）: \n')
+        select_pth = input('RVCのmodelファイル(*.pthまたは*.onnx)のパスを入力してください（空白でスキップ）: \n')
         if select_pth is not None and select_pth != '':
             select_index = input('RVCのindexファイル(*.index)のパスを入力してください（空白でスキップ）: \n')
             if select_index is not None and select_index != '':
