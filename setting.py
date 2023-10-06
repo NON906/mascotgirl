@@ -21,7 +21,7 @@ python mascot.py ^
     --chatgpt_model_name "__CHATGPT_MODEL_NAME__" ^
     --voicevox_speaker_name "__VOICEVOX_SPEAKER_NAME__" ^
     --voicevox_intonation_scale __VOICEVOX_INTONATION_SCALE__ ^
-    --rvc_pytorch_model_file "__RVC_PYTORCH_MODEL_FILE__" ^
+    __RVC_PYTORCH_MODEL_FILE_OPT__ ^
     --rvc_index_file "__RVC_INDEX_FILE__" ^
     --rvc_model_trans __RVC_MODEL_TRANS__ ^
     --chatgpt_log "chatgpt.json" ^
@@ -49,7 +49,7 @@ python mascot.py ^
     --chatgpt_model_name "__CHATGPT_MODEL_NAME__" ^
     --voicevox_speaker_name "__VOICEVOX_SPEAKER_NAME__" ^
     --voicevox_intonation_scale __VOICEVOX_INTONATION_SCALE__ ^
-    --rvc_pytorch_model_file "__RVC_PYTORCH_MODEL_FILE__" ^
+    __RVC_PYTORCH_MODEL_FILE_OPT__ ^
     --rvc_index_file "__RVC_INDEX_FILE__" ^
     --rvc_model_trans __RVC_MODEL_TRANS__ ^
     --ngrok_auth_token "__NGROK_AUTH_TOKEN__" ^
@@ -68,6 +68,8 @@ endlocal
     def replace(target: str, content: str):
         global run_bat_content
         global run_share_bat_content
+        if content is None:
+            content = ''
         run_bat_content = run_bat_content.replace(target, content)
         run_share_bat_content = run_share_bat_content.replace(target, content)
 
@@ -128,18 +130,29 @@ endlocal
     select_index = ''
     select_scale = '0'
     if os.path.isfile('.installed/.vc'):
-        select_pth = input('RVCのmodelファイル(*.pthまたは*.onnx)のパスを入力してください（空白でスキップ）: \n')
-        if select_pth is not None and select_pth != '':
-            select_index = input('RVCのindexファイル(*.index)のパスを入力してください（空白でスキップ）: \n')
-            if select_index is not None and select_index != '':
-                select_scale = 'dummy'
-                while not is_int_num(select_scale):
-                    select_scale = input('RVCの音高（-20～20くらい）を入力してください (0): \n')
-                    if select_scale is None or select_scale == '':
-                        select_scale = '0'
-            else:
-                select_pth = ''
-    replace('__RVC_PYTORCH_MODEL_FILE__', select_pth)
+        loop_flag = True
+        while loop_flag:
+            loop_flag = False
+            select_pth = input('RVCのmodelファイル(*.pthまたは*.onnx)のパスを入力してください（空白でスキップ）: \n')
+            if select_pth is not None and select_pth != '':
+                _, ext = os.path.splitext(select_pth)
+                if ext == '.pth':
+                    select_pth = '--rvc_pytorch_model_file "' + select_pth + '"'
+                elif ext == '.onnx':
+                    select_pth = '--rvc_onnx_model_file "' + select_pth + '"'
+                else:
+                    loop_flag = True
+                    continue
+                select_index = input('RVCのindexファイル(*.index)のパスを入力してください（空白でスキップ）: \n')
+                if select_index is not None and select_index != '':
+                    select_scale = 'dummy'
+                    while not is_int_num(select_scale):
+                        select_scale = input('RVCの音高（-20～20くらい）を入力してください (0): \n')
+                        if select_scale is None or select_scale == '':
+                            select_scale = '0'
+                else:
+                    select_pth = ''
+    replace('__RVC_PYTORCH_MODEL_FILE_OPT__', select_pth)
     replace('__RVC_INDEX_FILE__', select_index)
     replace('__RVC_MODEL_TRANS__', select_scale)
 
