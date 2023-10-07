@@ -24,31 +24,31 @@ ChatGPTを利用して、好きなキャラクターと会話できるシステ�
 しゃべっている内容は自由ですが、実際に学習する形式になるので、設定や立ち絵とは違って多く用意する必要があります。  
 なお、VOICEVOXの音声そのままでいいのであれば不要です。
 
-## これから用意・使用するもの
+## インストール方法
 
-- [RVC-WebUI](https://github.com/ddPn08/rvc-webui)（任意）  
-ボイスチェンジャーで使用するRVC(Retrieval-based Voice Changer)モデルを学習するためのものです。  
+### 1. インストーラーのダウンロード・実行（必須）
 
-- [ChatGPT](https://openai.com/blog/chatgpt)（APIキー）  
-ChatGPTはローカルで実行できる仕組みにはなっていないので、APIを使います。  
-無料分がありますが、それを超えると有料になるようなので気を付けてください。
+ver0.5からインストーラー(install.bat)のみで、各種アプリ・ライブラリをインストールすることが出来るようになりました。  
+install.batを[こちらからダウンロード](https://github.com/NON906/mascotgirl/releases/download/ver0.5/install.bat)し、インストールしたい場所に移動されてから、ダブルクリックで実行してください。　　
+画面の指示が出た場合は、その指示に従って入力してください。  
+デフォルトで問題ない場合は、（ChatGPTのAPIキー以外は）空白でも問題ありません。  
+時間がかかるため、以降の項目はその間に行うことをおすすめします。  
+なお、何らかの理由で設定を変更したい場合は、このinstall.batを再度起動すれば変更が可能です。
 
-- [VOICEVOX](https://voicevox.hiroshiba.jp/)  
-テキストからキャラクターの音声を生成するソフトです。  
-また、口パクの内容もこれから得られるデータから作っているので必須です。
+### 2. ChatGPTのAPIキーを取得（必須）
 
-- [VC Client](https://github.com/w-okada/voice-changer)（任意）  
-音声を変換するもの、いわゆるボイスチェンジャーです。  
-複数のモデルに対応しており、今回は前述のRVC形式を使います。
+ChatGPTをプログラム上で利用するためのAPIキーを取得します。  
+（1.が時間がかかるため、その間に行うことをおすすめします）
 
-- [talking-head-anime-3-demo(tha3)](https://github.com/pkhungurn/talking-head-anime-3-demo)  
-1枚の立ち絵からリアルタイムに表情などを変化させることができるものです。  
+まず、以下のサイトにアクセスし、ログイン（IDが無ければ登録）してください。
 
-- その他、Anaconda・rembg・OpenCVなど  
+https://platform.openai.com/account/api-keys
 
-## 各種インストール・生成方法
+その後「+ Create new secret key」をクリックすると、ランダムな文字列が表示されるので、それをどこかにコピペしてください。
 
-### 1. ChatGPTの設定ファイルの作成
+後は、1.でAPIキーを聞かれたら、そのコピーした内容を貼り付けてください。
+
+### 3. ChatGPTの設定ファイルの作成
 
 以下のような書式のtxtファイルを作成してください。  
 ``{キャラクター名}``などは適宜置換してください。
@@ -72,30 +72,30 @@ Please strictly adhere to the following conversation rules and settings:
 
 英語になっていますが、トークンというものを節約するだけのためなので、日本語で書いても問題ないはずです。
 
-以降は全てインストールなどの待つ時間がかかる作業なので、その間に書いておくといいでしょう。
+後は、1.で聞かれたら、このtxtファイルのパスを入力してください。
 
-### 2. Anacondaのインストール
+### 4. Androidアプリのインストール・ngrokのトークンを取得
 
-一部のプログラムでは、Pythonというものを使用するのですが、WindowsではAnacondaというパッケージ化されたものを使うのがよいそうなので、そちらをインストールします。  
-以下からインストーラーをダウンロードできます。
+Androidアプリからリモートで動作できるようになっています。  
+Androidアプリ本体は[こちらからダウンロード](https://github.com/NON906/mascotgirl/releases/download/ver0.4/MascotGirl_ver0.4.apk)できます。
 
-https://www.anaconda.com/download
+このアプリを使用したい場合は、ngrokを使用するため、[こちらから登録](https://ngrok.com/)し、[こちらからトークンを取得](https://dashboard.ngrok.com/auth)してください。
 
-インストールしたら、コマンドプロンプトから以下を実行してください。
+後は、1.で聞かれたら、このトークンを入力してください。
 
-```
-conda -V
-```
+### 5. 実行
 
-バージョンが出てきたらインストール成功です。  
-もし、失敗した場合は以下のページの「2.手動でPATHを通す」の手順でPATHを設定してください。
+1.が完了すると、run.batが生成されるので、それをダブルクリックしてください。  
+Androidのアプリを使用する場合は、代わりにrun_share.batをダブルクリックして起動し、QRコードが出てきたら、それをAndroidで読み取ってください。
 
-https://golabo.net/windows-path-anaconda/
-
-### 3. RVC-WebUIでRVCモデルの学習（任意）
+## RVC-WebUIでRVCモデルの学習（任意）
 
 RVC-WebUIで、キャラクターの音声から、ボイスチェンジャーのモデルを学習させます。  
 ボイスチェンジャーを使わず、VOICEVOXの音声をそのまま使う場合は不要ですが、好きなキャラクターのボイスでしゃべらせたい場合は行ってください。  
+なお、この機能を利用する場合は、install.bat上でVC Clientのインストールが必要になります。  
+
+なお、以下の記述はAnacondaかMinicondaのインストールされている前提です。  
+install.batでインストールしたMinicondaのPATHを通すか、別のAnacondaを[インストール](https://www.anaconda.com/download)してください。
 
 まず、RVC-WebUIはPython 3.10.9のインストールが必要です。  
 コマンドプロンプトから、以下のコマンドを実行することでAnacondaの仮想環境とともにインストールができます。
@@ -135,145 +135,33 @@ webui-user.bat
 学習が終わったらInferenceタブからテストを行えます。
 
 完成したデータは以下に配置されます。  
-後で使うので、削除しないように気をつけてください。
+削除しないように気をつけてください。
 
 ```
 models\checkpoints\xxx.pth
-models\checkpoints\xxx_index\xxx.0.big.npy
 models\checkpoints\xxx_index\xxx.0.index
 ```
 
-### 4. ChatGPTのAPIキーを取得
+完成したら、install.batを起動し、これらのパスを入力してください。
 
-ChatGPTをプログラム上で利用するためのAPIキーを取得します。
+## 使用しているするもの
 
-まず、以下のサイトにアクセスし、ログイン（IDが無ければ登録）してください。
+- [ChatGPT](https://openai.com/blog/chatgpt)（APIキー）  
+ChatGPTはローカルで実行できる仕組みにはなっていないので、APIを使います。  
+無料分がありますが、それを超えると有料になるようなので気を付けてください。
 
-https://platform.openai.com/account/api-keys
+- [VOICEVOX](https://voicevox.hiroshiba.jp/)  
+テキストからキャラクターの音声を生成するソフトです。  
+また、口パクの内容もこれから得られるデータから作っているので必須です。
 
-その後「+ Create new secret key」をクリックすると、ランダムな文字列が表示されるので、それをどこかにコピペしてください。
+- [talking-head-anime-3-demo(tha3)](https://github.com/pkhungurn/talking-head-anime-3-demo)  
+1枚の立ち絵からリアルタイムに表情などを変化させることができるものです。  
 
-### 5. VOICEVOXのインストール
+- [VC Client](https://github.com/w-okada/voice-changer)（任意）  
+音声を変換するもの、いわゆるボイスチェンジャーです。  
+複数のモデルに対応しており、今回はRVC形式を使います。
 
-以下のサイトからダウンロードしてインストールしてください。
+- [RVC-WebUI](https://github.com/ddPn08/rvc-webui)（任意）  
+ボイスチェンジャーで使用するRVC(Retrieval-based Voice Changer)モデルを学習するためのものです。  
 
-https://voicevox.hiroshiba.jp/
-
-### 6. VC Clientのインストール（任意）
-
-以下のサイトの「(2) 事前ビルド済みの Binary での利用」にダウンロードリンクがあるので、そこからダウンロードしてください。
-
-https://github.com/w-okada/voice-changer
-
-なお、起動する場合は「start_http.bat」を起動してください。
-
-もし、これで上手くいかない場合は、以下のサイトから「hubert_base.pt」をダウンロードして、「start_http.bat」と同じフォルダに格納してください。
-
-https://huggingface.co/lj1995/VoiceConversionWebUI/blob/main/hubert_base.pt
-
-### 7. tha3・mascotgirlおよび必要なライブラリをインストール
-
-まず、以下の3つをダウンロードして解凍してください。
-
-https://github.com/NON906/mascotgirl/archive/refs/heads/main.zip  
-https://github.com/pkhungurn/talking-head-anime-3-demo/archive/refs/heads/main.zip  
-https://www.dropbox.com/s/y7b8jl4n2euv8xe/talking-head-anime-3-models.zip
-
-次にmascotgirlの中のtalking_head_anime_3_demoフォルダに、talking-head-anime-3-demoの中身を入れてください。  
-（上記2つは、Gitをインストール済みであれば以下でも構いません）
-```
-git clone --recursive https://github.com/NON906/mascotgirl.git
-```
-さらにtalking-head-anime-3-modelsをその中のdata/modelsに入れてください。  
-最終的には以下のようになります。
-
-```
-mascotgirl
-- chara
-...
-- talking_head_anime_3_demo
-  - data
-    - images
-    - models
-      - separable_float
-      - separable_half
-      - standard_float
-      - standard_half
-      ...
-  - docs
-  - tha3
-  ...
-...
-```
-
-配置し終わったら、以下を実行してください。
-
-```
-cd [mascotgirlのダウンロード先]\talking_head_anime_3_demo
-conda env create -f environment.yml
-```
-
-これで新しく``talking-head-anime-3-demo``という名前の仮想環境が作成されます。  
-さらに以下を行って、mascotgirlで必要なライブラリを追加でインストールしてください。
-
-```
-conda activate talking-head-anime-3-demo
-conda install opencv openai
-pip install rembg fastapi uvicorn
-```
-
-### 8. mascotgirlの設定
-
-「run.bat」をテキストエディタ（メモ帳など）で開いてください（この時点ではダブルクリックをしないでください）。  
-次に以下の項目を変更してください。
-
-```
-@echo off
-
-python mascot.py ^
-    --voicevox_path "C:\Users\xxx\AppData\Local\Programs\VOICEVOX\VOICEVOX.exe" ^ ←VOICEVOXのインストール先（5.）
-    --voice_changer_path "C:\MMVCServerSIO\start_http.bat" ^ ←VC Clientのインストール先（6.）。不要なら削除
-    --image "xxx.png" ^ ←キャラクターの立ち絵の画像ファイル
-      --background_image "chara/background.png" ^ ←背景の画像ファイル
-    --chatgpt_apikey "sk-xxxxxxxx" ^ ←ChatGPTのAPIキー（4.）
-    --chatgpt_setting "xxx.txt" ^ ←キャラクターの設定ファイル（1.）
-    --voicevox_speaker_name "WhiteCUL" ^ ←VOICEVOXの話者名（デフォルトはWhiteCUL）
-    --rvc_pytorch_model_file "xxx.pth" ^ ←RVCのファイル（3.）。不要なら削除
-    --rvc_feature_file "xxx_index\xxx.0.big.npy" ^ ←RVCのファイル（3.）。不要なら削除
-    --rvc_index_file "xxx_index\xxx.0.index" ^ ←RVCのファイル（3.）。不要なら削除
-    --voicevox_intonation_scale 1.0 ^ ←VOICEVOXの抑揚（対象のキャラクターっぽい声になるまで調整：0.0～2.0）
-    --rvc_model_trans 0 ^ RVCの音高（対象のキャラクターっぽい声になるまで調整：大体-20～20くらい）
-    --chatgpt_log "chatgpt.json" ^ ←会話履歴
-    --chatgpt_log_replace ^ ←消すと会話履歴をロードして、続きから会話できるようになります。
-    --image_pipe_name "\\.\pipe\mascot_image_pipe" ^ ←変更しないでください
-    --run_command "client\MascotGirl_Client.exe -start_local" ←変更しないでください
-```
-
-以上で準備は終わりです。
-
-## 起動方法
-
-```
-conda activate talking-head-anime-3-demo
-cd [mascotgirlのダウンロード先]
-run.bat
-```
-
-## リモート動作機能
-
-Androidアプリからリモートで動作できるようになりました。  
-Androidアプリ本体は[Releases Page](https://github.com/NON906/mascotgirl/releases)からダウンロードできます。
-
-1. [ngrok](https://ngrok.com/)に登録してください。
-
-2. 以下を実行してください
-```
-conda activate talking-head-anime-3-demo
-pip install pyngrok qrcode
-```
-
-3. 「run_share.bat」を編集・実行してください。  
-   ``--ngrok_auth_token``には、[こちら](https://dashboard.ngrok.com/auth)から得たトークンを入力してください  
-   ほかの内容は「run.bat」とほぼ同じです。
-
-4. 起動したら、アプリでQRコードを読み取って接続してください。
+- その他、Anaconda・rembg・OpenCVなど  
