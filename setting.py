@@ -8,8 +8,8 @@ if __name__ == "__main__":
     run_bat_content = r'''
 @echo off
 setlocal
-set PATH=%~dp0Miniconda3;%~dp0Miniconda3\condabin;%~dp0Miniconda3\Library\mingw-w64\bin;%~dp0Miniconda3\Library\usr\bin;%~dp0Miniconda3\Library\bin;%~dp0Miniconda3\Scripts;%PATH%
-call %~dp0Miniconda3\condabin\conda activate mascotgirl
+set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts;%PATH%
+call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
 cd mascotgirl
 python mascot.py ^
     --voicevox_path "..\bin\voicevox\run.exe" ^
@@ -29,15 +29,15 @@ python mascot.py ^
     --image_pipe_name "\\.\pipe\mascot_image_pipe" ^
     --run_command "client\MascotGirl_Client.exe -start_local"
 cd ..
-call %~dp0Miniconda3\condabin\conda deactivate
+call %~dp0bin\Miniconda3\condabin\conda deactivate
 endlocal
     '''
 
     run_share_bat_content = r'''
 @echo off
 setlocal
-set PATH=%~dp0Miniconda3;%~dp0Miniconda3\condabin;%~dp0Miniconda3\Library\mingw-w64\bin;%~dp0Miniconda3\Library\usr\bin;%~dp0Miniconda3\Library\bin;%~dp0Miniconda3\Scripts;%PATH%
-call %~dp0Miniconda3\condabin\conda activate mascotgirl
+set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts;%PATH%
+call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
 cd mascotgirl
 python mascot.py ^
     --voicevox_path "..\bin\voicevox\run.exe" ^
@@ -61,7 +61,7 @@ python mascot.py ^
     --run_command_reload ^
     --run_command "ffmpeg\ffmpeg -y -f rawvideo -pix_fmt rgba -s 512x512 -framerate 30 -thread_queue_size 8192 -i \\.\pipe\mascot_image_pipe -f s16le -ar 48000 -ac 1 -thread_queue_size 8192 -i \\.\pipe\mascot_pipe -auto-alt-ref 0 -deadline realtime -quality realtime -cpu-used 4 -row-mt 1 -crf 30 -b:v 0 -pass 1 -c:v libvpx-vp9 -c:a libopus -f matroska tcp://0.0.0.0:55009/stream?listen"
 cd ..
-call %~dp0Miniconda3\condabin\conda deactivate
+call %~dp0bin\Miniconda3\condabin\conda deactivate
 endlocal
     '''
 
