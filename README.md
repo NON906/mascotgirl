@@ -88,58 +88,46 @@ Androidアプリ本体は[こちらからダウンロード](https://github.com/
 1.が完了すると、run.batが生成されるので、それをダブルクリックしてください。  
 Androidのアプリを使用する場合は、代わりにrun_share.batをダブルクリックして起動し、QRコードが出てきたら、それをAndroidで読み取ってください。
 
-## RVC-WebUIでRVCモデルの学習（任意）
+## RVCモデルの学習（任意）
 
-RVC-WebUIで、キャラクターの音声から、ボイスチェンジャーのモデルを学習させます。  
+キャラクターの音声から、ボイスチェンジャーのモデルを学習させます。  
 ボイスチェンジャーを使わず、VOICEVOXの音声をそのまま使う場合は不要ですが、好きなキャラクターのボイスでしゃべらせたい場合は行ってください。  
 なお、この機能を利用する場合は、install.bat上でVC Clientのインストールが必要になります。  
 
-なお、以下の記述はAnacondaかMinicondaのインストールされている前提です。  
-install.batでインストールしたMinicondaのPATHを通すか、別のAnacondaを[インストール](https://www.anaconda.com/download)してください。
+まず、[こちらのページ](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main)から、「RVC-beta.7z」をダウンロードします。  
+ダウンロードしたら、[7-zip](https://7-zip.opensource.jp/)などで解凍してください。
 
-まず、RVC-WebUIはPython 3.10.9のインストールが必要です。  
-コマンドプロンプトから、以下のコマンドを実行することでAnacondaの仮想環境とともにインストールができます。
+次に、「go-web.bat」をダブルクリックしてください。  
+自動でブラウザが開きます。
 
-```
-conda create -n rvc python=3.10.9
-```
+この後、「トレーニング」タブからボイスチェンジャーのモデルを学習・作成します。  
+以下の値を変更してください。
 
-次に以下のページからRVC-WebUIをダウンロードして解凍してください。
+- ステップ1の「モデル名」
+- ステップ2aの「トレーニング用フォルダのパスを入力してください」（wavファイルが存在するパスを指定）
+- ステップ3の「総エポック数」（100くらい？）
 
-https://github.com/ddPn08/rvc-webui/archive/refs/heads/main.zip
+以下は必要に応じて変更してください。
 
-（もし、Gitをインストール済みであれば以下でも構いません）
-```
-git clone https://github.com/ddPn08/rvc-webui.git
-```
+- ステップ1の「モデルに音高ガイドがあるかどうか(歌唱には必要ですが、音声には必要ありません)」
+- ステップ1の「バージョン」（v2の方が高性能）
+- ステップ3の「エポックごとの保存頻度」（空き容量に応じて変更）
+- ステップ3の「ハードディスク容量を節約するため、最新のckptファイルのみを保存しますか？」（空き容量に応じて変更）
 
-ダウンロードしたら、以下のコマンドを実行します。
+その後、以下の順番でボタンをクリックしてください。
 
-```
-conda activate rvc
-cd [RVC-WebUIのダウンロード先]
-webui-user.bat
-```
+1. ステップ2aの「データ処理」
+2. ステップ2bの「特徴抽出」
+3. ステップ3の「ワンクリックトレーニング」
 
-少し待って、URLが表示されたら、そのURLにアクセスしてください。
-
-この後、ボイスチェンジャーのモデルを学習・作成します。
-
-1. Trainingタブをクリック
-2. Model Nameに名前を入力
-3. Dataset globにキャラクターの音声データのパスを入力
-4. Number of epochs（100くらい？）やSave every epoch（毎回保存すると容量を喰うので余裕がなければ増やす）を適宜変更
-5. Trainボタンをクリック
-
-非常に時間がかかるため、寝る前など時間があるときに実行してください。  
-学習が終わったらInferenceタブからテストを行えます。
+3.は非常に時間がかかるため、時間があるときに実行してください。  
 
 完成したデータは以下に配置されます。  
 削除しないように気をつけてください。
 
 ```
-models\checkpoints\xxx.pth
-models\checkpoints\xxx_index\xxx.0.index
+weights\xxx.pth
+logs\xxx\added_IVF267_Flat_nprobe_1_xxx_v2.index
 ```
 
 完成したら、install.batを起動し、これらのパスを入力してください。
@@ -160,8 +148,5 @@ ChatGPTはローカルで実行できる仕組みにはなっていないので�
 - [VC Client](https://github.com/w-okada/voice-changer)（任意）  
 音声を変換するもの、いわゆるボイスチェンジャーです。  
 複数のモデルに対応しており、今回はRVC形式を使います。
-
-- [RVC-WebUI](https://github.com/ddPn08/rvc-webui)（任意）  
-ボイスチェンジャーで使用するRVC(Retrieval-based Voice Changer)モデルを学習するためのものです。  
 
 - その他、Anaconda・rembg・OpenCVなど  
