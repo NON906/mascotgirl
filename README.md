@@ -29,7 +29,7 @@ ChatGPTを利用して、好きなキャラクターと会話できるシステ�
 ### 1. インストーラーのダウンロード・実行（必須）
 
 ver0.5からインストーラー(install.bat)のみで、各種アプリ・ライブラリをインストールすることが出来るようになりました。  
-install.batを[こちらからダウンロード](https://github.com/NON906/mascotgirl/releases/download/ver0.5/install.bat)し、インストールしたい場所に移動されてから、ダブルクリックで実行してください。  
+install.batを[こちらからダウンロード](https://github.com/NON906/mascotgirl/releases/download/ver0.5.1/install.bat)し、インストールしたい場所に移動されてから、ダブルクリックで実行してください。  
 画面の指示が出た場合は、その指示に従って入力してください。  
 デフォルトで問題ない場合は、（ChatGPTのAPIキー以外は）空白でも問題ありません。  
 時間がかかるため、以降の項目はその間に行うことをおすすめします。  
