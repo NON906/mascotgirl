@@ -9,6 +9,9 @@ import openai
 import json
 import threading
 from gpt_stream_parser import force_parse_json
+import copy
+
+from src import extension
 
 class MascotChatGpt:
     chatgpt_messages = []
@@ -44,7 +47,7 @@ Change the state of the character who will be speaking, then send the message.
         },
     }]
     recieved_message = ''
-    recieved_states_data = ''
+    recieved_states_data = None
 
     def __init__(self, apikey):
         openai.api_key = apikey
@@ -97,28 +100,77 @@ Change voice style (Either ''' + style_names_str + ''').
         if self.chatgpt_response is not None:
             return False
 
+        self.chatgpt_messages.append({"role": "user", "content": content})
+
+        system_messages = self.chatgpt_messages[0]['content']
+        all_funcs = self.chatgpt_functions
+        for ext in extension.extensions:
+            funcs = ext.get_chatgpt_functions()
+            if funcs is not None:
+                all_funcs = all_funcs + funcs
+            mes = ext.get_chatgpt_system_message()
+            if mes is not None:
+                system_messages += '\n' + mes
+
+        chatgpt_messages = copy.deepcopy(self.chatgpt_messages)
+        chatgpt_messages[0]['content'] = system_messages
+
         def recv():
             self.recieved_message = ''
             recieved_json = ''
-            self.recieved_states_data = ''
-            self.chatgpt_messages.append({"role": "user", "content": content})
+            self.recieved_states_data = None
             self.chatgpt_response = openai.ChatCompletion.create(
                 model=self.chatgpt_model_name,
-                messages=self.chatgpt_messages,
-                stream=True
+                messages=chatgpt_messages,
+                stream=True,
+                functions=all_funcs
             )
+            is_func = False
             for chunk in self.chatgpt_response:
-                if 'function_call' in chunk.choices[0].delta and chunk.choices[0].delta.function_call is not None and chunk.choices[0].delta.function_call.name == 'message_and_change_states':
+                if 'function_call' in chunk.choices[0].delta and chunk.choices[0].delta.function_call is not None:
                     recieved_json += chunk.choices[0].delta.function_call.arguments
                     self.recieved_states_data = force_parse_json(recieved_json)
-                    if 'message' in self.recieved_states_data:
-                        self.recieved_message = self.recieved_states_data['message']
+                    func_name = chunk.choices[0].delta.function_call.name
+                    if func_name == 'message_and_change_states':
+                        if 'message' in self.recieved_states_data:
+                            self.recieved_message = self.recieved_states_data['message']
+                        for ext in extension.extensions:
+                            ext.recv_message_streaming(self.chatgpt_messages, self.recieved_message)
+                    else:
+                        for ext in extension.extensions:
+                            ext.recv_function_streaming(self.chatgpt_messages, func_name, self.recieved_states_data)
+                        is_func = True
                 else:
                     self.recieved_message += chunk.choices[0].delta.get('content', '')
-            self.chatgpt_messages.append({"role": "assistant", "content": self.recieved_message})
-            if write_log:
-                self.write_log()
+                    for ext in extension.extensions:
+                        ext.recv_message_streaming(self.chatgpt_messages, self.recieved_message)
+            resend_flag = False
+            if is_func:
+                message = ''
+                for ext in extension.extensions:
+                    resend_or_message = ext.recv_function(self.chatgpt_messages, func_name, self.recieved_states_data)
+                    if resend_or_message is str:
+                        if message != '':
+                            message += '\n'
+                        message += resend_or_message
+                    elif resend_or_message is not None:
+                        resend_flag = True
+                if not resend_flag:
+                    self.chatgpt_messages.append({"role": "assistant", "content": message})
+                    for ext in extension.extensions:
+                        ext.recv_message(message)
+                    if write_log:
+                        self.write_log()
+            else:
+                self.chatgpt_messages.append({"role": "assistant", "content": self.recieved_message})
+                for ext in extension.extensions:
+                    ext.recv_message(self.chatgpt_messages)
+                if write_log:
+                    self.write_log()
             self.chatgpt_response = None
+            if resend_flag:
+                self.chatgpt_messages = self.chatgpt_messages[:-1]
+                self.send_to_chatgpt(content, write_log)
 
         self.chatgpt_response = []
         recv_thread = threading.Thread(target=recv)
@@ -130,12 +182,13 @@ Change voice style (Either ''' + style_names_str + ''').
         voice_style = None
         eyebrow = None
         eyes = None
-        if 'voice_style' in self.recieved_states_data:
-            voice_style = self.recieved_states_data['voice_style']
-        if 'eyebrow' in self.recieved_states_data:
-            eyebrow = self.recieved_states_data['eyebrow']
-        if 'eyes' in self.recieved_states_data:
-            eyes = self.recieved_states_data['eyes']
+        if self.recieved_states_data is not None:
+            if 'voice_style' in self.recieved_states_data:
+                voice_style = self.recieved_states_data['voice_style']
+            if 'eyebrow' in self.recieved_states_data:
+                eyebrow = self.recieved_states_data['eyebrow']
+            if 'eyes' in self.recieved_states_data:
+                eyes = self.recieved_states_data['eyes']
         return self.chatgpt_response is None, voice_style, eyebrow, eyes
 
     def get_message(self):
@@ -146,3 +199,8 @@ Change voice style (Either ''' + style_names_str + ''').
             self.chatgpt_messages = self.chatgpt_messages[:-2]
             if write_log:
                 self.write_log()
+            for ext in extension.extensions:
+                ext.remove_last_conversation()
+
+    def get_model_name(self):
+        return self.chatgpt_model_name

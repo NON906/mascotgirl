@@ -37,6 +37,37 @@ from src.animation_eyes import AnimationEyes
 from src.animation_breathing import AnimationBreathing
 from src.voice_changer import check_voice_changer, VoiceChangerRVC
 from src.named_pipe import NamedPipeAudio
+from src import extension
+
+class MascotMainSettings:
+    mascot_image = None
+    background_image_path = None
+    mascot_chatgpt = None
+
+    def __init__(self):
+        self.mascot_image = MascotImage()
+
+    def get_mascot_image(self):
+        return self.mascot_image
+
+    def set_image(self, new_image_path, skip_image_setting=False):
+        if new_image_path is not None:
+            image = cv2.imread(new_image_path, -1)
+            image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
+            if image is not None:
+                self.mascot_image.upload_image(image, skip_image_setting)
+
+    def set_background_image_path(self, path):
+        self.background_image_path = path
+
+    def get_background_image_path(self):
+        return self.background_image_path
+
+    def set_mascot_chatgpt(self, mascot_chatgpt):
+        self.mascot_chatgpt = mascot_chatgpt
+
+    def get_mascot_chatgpt(self):
+        return self.mascot_chatgpt
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -78,6 +109,10 @@ if __name__ == "__main__":
     parser.add_argument('--ngrok_auth_token')
     parser.add_argument('--show_qrcode', action='store_true')
     args = parser.parse_args()
+
+    main_settings = MascotMainSettings()
+    main_settings.set_image(args.image, args.skip_image_setting)
+    main_settings.set_background_image_path(args.background_image)
 
     http_url = ''
     image_tcp_protocol = 'tcp'
@@ -174,18 +209,15 @@ if __name__ == "__main__":
             mascot_chatgpt.load_setting(args.chatgpt_setting, style_names)
         if not args.chatgpt_log_replace and args.chatgpt_log is not None:
             mascot_chatgpt.load_log(args.chatgpt_log)
-
-    mascot_image = MascotImage()
-
-    if args.image is not None:
-        image = cv2.imread(args.image, -1)
-        image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
-        if image is not None:
-            mascot_image.upload_image(image, args.skip_image_setting)
+    main_settings.set_mascot_chatgpt(mascot_chatgpt)
+    
+    for ext in extension.extensions:
+        ext.init(main_settings)
 
     http_app = FastAPI()
     http_router = APIRouter()
 
+    mascot_image = main_settings.get_mascot_image()
     animation_mouth = AnimationMouth(mascot_image)
     animation_eyes = AnimationEyes(mascot_image)
     animation_breathing = AnimationBreathing(mascot_image)
@@ -395,15 +427,17 @@ if __name__ == "__main__":
 
     def http_background():
         global current_path
-        if args.background_image is None:
+        global main_settings
+        background_image = main_settings.get_background_image_path()
+        if background_image is None:
             return JSONResponse(content={'success': False}, status_code=404)
-        if current_path in args.background_image:
-            full_path = args.background_image
+        if current_path in background_image:
+            full_path = background_image
         else:
-            full_path = current_path + '/' + args.background_image
+            full_path = current_path + '/' + background_image
         response = FileResponse(
             path=full_path,
-            filename=os.path.basename(args.background_image)
+            filename=os.path.basename(background_image)
             )
         return response
     http_router.add_api_route("/background", http_background, methods=["GET"])

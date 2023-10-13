@@ -5,6 +5,8 @@ import os
 import shutil
 import py7zr
 import subprocess
+import sys
+from importlib import import_module
 
 def wget(url: str, save_path: str):
     if os.path.dirname(save_path) != "":
@@ -59,3 +61,11 @@ if __name__ == "__main__":
             os.remove('MMVCServerSIO_win_onnxgpu-cuda.zip')
         else:
             continue
+
+    os.chdir('mascotgirl')
+    extension_install_modules = [
+        import_module('extensions.' + f + '.install') for f in os.listdir('extensions') if os.path.isdir(os.path.join('extensions', f))
+    ]
+    for ext in extension_install_modules:
+        ext.install()
+    os.chdir('..')
