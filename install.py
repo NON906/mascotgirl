@@ -63,9 +63,12 @@ if __name__ == "__main__":
             continue
 
     os.chdir('mascotgirl')
-    extension_install_modules = [
-        import_module('extensions.' + f + '.install') for f in os.listdir('extensions') if os.path.isdir(os.path.join('extensions', f))
-    ]
-    for ext in extension_install_modules:
-        ext.install()
+    for dir_name in os.listdir('extensions_builtin'):
+        dir_path = os.path.join('extensions_builtin', dir_name)
+        if os.path.isdir(dir_path):
+            select = input('拡張機能 ' + dir_name + ' をインストールしますか？ [y/N]: ')
+            if select == 'Y' or select == 'y':
+                shutil.copytree(dir_path, os.path.join('extensions', dir_name))
+                ext = import_module('extensions.' + dir_name + '.install')
+                ext.install()
     os.chdir('..')
