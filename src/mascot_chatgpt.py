@@ -126,17 +126,20 @@ Change voice style (Either ''' + style_names_str + ''').
                 functions=all_funcs
             )
             is_func = False
+            func_name = None
             for chunk in self.chatgpt_response:
                 if 'function_call' in chunk.choices[0].delta and chunk.choices[0].delta.function_call is not None:
-                    recieved_json += chunk.choices[0].delta.function_call.arguments
-                    self.recieved_states_data = force_parse_json(recieved_json)
-                    func_name = chunk.choices[0].delta.function_call.name
+                    if 'arguments' in chunk.choices[0].delta.function_call:
+                        recieved_json += chunk.choices[0].delta.function_call.arguments
+                        self.recieved_states_data = force_parse_json(recieved_json)
+                    if 'name' in chunk.choices[0].delta.function_call:
+                        func_name = chunk.choices[0].delta.function_call.name
                     if func_name == 'message_and_change_states':
-                        if 'message' in self.recieved_states_data:
+                        if self.recieved_states_data is not None and 'message' in self.recieved_states_data:
                             self.recieved_message = self.recieved_states_data['message']
                         for ext in extension.extensions:
                             ext.recv_message_streaming(self.chatgpt_messages, self.recieved_message)
-                    else:
+                    elif func_name is not None:
                         for ext in extension.extensions:
                             ext.recv_function_streaming(self.chatgpt_messages, func_name, self.recieved_states_data)
                         is_func = True

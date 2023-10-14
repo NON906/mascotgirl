@@ -66,43 +66,43 @@ Ostensibly say "memory" instead of "database" or "search".
             }]
         return None
 
+    def search_keywords(self, keywords):
+        client = meilisearch.Client(self.meilisearch_url, self.meilisearch_key)
+        index = client.index(self.setting_name)
+
+        try:
+            search_result = index.search(
+                keywords,
+                {
+                    'limit': self.search_limit,
+                    'sort': ['time:desc']
+                })
+        except:
+            self.search_history_contents.append((keywords, 'Not Found.'))
+            return
+        if len(search_result['hits']) == 0:
+            self.search_history_contents.append((keywords, 'Not Found.'))
+            return
+
+        encoding = tiktoken.encoding_for_model(self.model)
+        chatgpt_messages_content = ''
+        for hit in search_result['hits']:
+            next_messages = hit['messages'] + '\n---\n' + chatgpt_messages_content
+            token_count = len(encoding.encode('Summarize the information for "' + keywords + '" from the following conversations.\n---\n' + next_messages))
+            if token_count >= self.summarize_tokens:
+                break
+            chatgpt_messages_content = next_messages
+        chatgpt_messages_content = 'Summarize the information for "' + keywords + '" from the following conversations.\n---\n' + chatgpt_messages_content
+
+        #self.lock_chatgpt()
+        chatgpt_response = openai.ChatCompletion.create(
+            model=self.model,
+            messages=[{"role": "user", "content": chatgpt_messages_content}],
+        )
+        #self.unlock_chatgpt()
+        self.search_history_contents.append((keywords, str(chatgpt_response["choices"][0]["message"]["content"])))
+
     def recv_function(self, messages, function_name, result):
-        def search_keywords(self, keywords):
-            client = meilisearch.Client(self.meilisearch_url, self.meilisearch_key)
-            index = client.index(self.setting_name)
-
-            try:
-                search_result = index.search(
-                    keywords,
-                    {
-                        'limit': self.search_limit,
-                        'sort': ['mtime:desc']
-                    })
-            except:
-                self.search_history_contents.append((keywords, 'Not Found.'))
-                return
-            if len(search_result['hits']) == 0:
-                self.search_history_contents.append((keywords, 'Not Found.'))
-                return
-
-            encoding = tiktoken.encoding_for_model(self.model)
-            chatgpt_messages_content = ''
-            for hit in search_result['hits']:
-                next_messages = hit['messages'] + '\n---\n' + chatgpt_messages_content
-                token_count = len(encoding.encode('Summarize the information for "' + keywords + '" from the following conversations.\n---\n' + next_messages))
-                if token_count >= self.summarize_tokens:
-                    break
-                chatgpt_messages_content = next_messages
-            chatgpt_messages_content = 'Summarize the information for "' + keywords + '" from the following conversations.\n---\n' + chatgpt_messages_content
-
-            #self.lock_chatgpt()
-            chatgpt_response = openai.ChatCompletion.create(
-                model=self.model,
-                messages=[{"role": "user", "content": chatgpt_messages_content}],
-            )
-            #self.unlock_chatgpt()
-            self.search_history_contents.append((keywords, str(chatgpt_response["choices"][0]["message"]["content"])))
-        
         if function_name != 'memory_search_history':
             self.function_enabled = True
             return None
@@ -112,7 +112,7 @@ Ostensibly say "memory" instead of "database" or "search".
                 self.function_enabled = False
                 return True
 
-        search_keywords(self, result['keywords'])
+        self.search_keywords(result['keywords'])
         return True
 
     def recv_message(self, messages):
