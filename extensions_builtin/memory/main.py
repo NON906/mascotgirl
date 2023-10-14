@@ -37,14 +37,14 @@ class MemoryExtension(extension.Extension):
         else:
             subprocess.Popen([os.path.join(os.path.dirname(__file__), 'bin/meilisearch'), '--master-key', 'aSampleMasterKey'])
         os.chdir(default_cd)
-        self.model = main_settings.get_mascot_chatgpt().get_model_name()
+        self.model = main_settings.mascot_chatgpt.get_model_name()
         json_path = os.path.join(os.path.dirname(__file__), 'save.json')
         if os.path.isfile(json_path):
             with open(json_path, 'r') as f:
                 loaded_json = json.load(f)
                 self.meilisearch_index = loaded_json['index']
         self.add_index()
-        self.chatgpt = main_settings.get_mascot_chatgpt()
+        self.chatgpt = main_settings.mascot_chatgpt
 
     def get_chatgpt_functions(self):
         if self.function_enabled:
