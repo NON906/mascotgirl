@@ -40,34 +40,39 @@ from src.named_pipe import NamedPipeAudio
 from src import extension
 
 class MascotMainSettings:
-    mascot_image = None
-    background_image_path = None
-    mascot_chatgpt = None
+    __mascot_image = None
+    __background_image_path = None
+    __mascot_chatgpt = None
 
     def __init__(self):
-        self.mascot_image = MascotImage()
+        self.__mascot_image = MascotImage()
 
-    def get_mascot_image(self):
-        return self.mascot_image
+    @property
+    def mascot_image(self):
+        return self.__mascot_image
 
     def set_image(self, new_image_path, skip_image_setting=False):
         if new_image_path is not None:
             image = cv2.imread(new_image_path, -1)
             image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
             if image is not None:
-                self.mascot_image.upload_image(image, skip_image_setting)
+                self.__mascot_image.upload_image(image, skip_image_setting)
 
-    def set_background_image_path(self, path):
-        self.background_image_path = path
+    @property
+    def background_image_path(self):
+        return self.__background_image_path
 
-    def get_background_image_path(self):
-        return self.background_image_path
+    @background_image_path.setter
+    def background_image_path(self, path):
+        self.__background_image_path = path
 
-    def set_mascot_chatgpt(self, mascot_chatgpt):
-        self.mascot_chatgpt = mascot_chatgpt
+    @property
+    def mascot_chatgpt(self):
+        return self.__mascot_chatgpt
 
-    def get_mascot_chatgpt(self):
-        return self.mascot_chatgpt
+    @mascot_chatgpt.setter
+    def mascot_chatgpt(self, mascot_chatgpt):
+        self.__mascot_chatgpt = mascot_chatgpt
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -112,7 +117,7 @@ if __name__ == "__main__":
 
     main_settings = MascotMainSettings()
     main_settings.set_image(args.image, args.skip_image_setting)
-    main_settings.set_background_image_path(args.background_image)
+    main_settings.background_image_path = args.background_image
 
     http_url = ''
     image_tcp_protocol = 'tcp'
@@ -209,7 +214,7 @@ if __name__ == "__main__":
             mascot_chatgpt.load_setting(args.chatgpt_setting, style_names)
         if not args.chatgpt_log_replace and args.chatgpt_log is not None:
             mascot_chatgpt.load_log(args.chatgpt_log)
-    main_settings.set_mascot_chatgpt(mascot_chatgpt)
+    main_settings.mascot_chatgpt = mascot_chatgpt
     
     for ext in extension.extensions:
         ext.init(main_settings)
@@ -217,7 +222,7 @@ if __name__ == "__main__":
     http_app = FastAPI()
     http_router = APIRouter()
 
-    mascot_image = main_settings.get_mascot_image()
+    mascot_image = main_settings.mascot_image
     animation_mouth = AnimationMouth(mascot_image)
     animation_eyes = AnimationEyes(mascot_image)
     animation_breathing = AnimationBreathing(mascot_image)
@@ -428,7 +433,7 @@ if __name__ == "__main__":
     def http_background():
         global current_path
         global main_settings
-        background_image = main_settings.get_background_image_path()
+        background_image = main_settings.background_image_path
         if background_image is None:
             return JSONResponse(content={'success': False}, status_code=404)
         if current_path in background_image:
