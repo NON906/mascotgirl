@@ -10,6 +10,7 @@ import json
 import threading
 from gpt_stream_parser import force_parse_json
 import copy
+import time
 
 from src import extension
 
@@ -48,6 +49,8 @@ Change the state of the character who will be speaking, then send the message.
     }]
     recieved_message = ''
     recieved_states_data = None
+    is_send_to_chatgpt = False
+    last_time_chatgpt = 0.0
 
     def __init__(self, apikey):
         openai.api_key = apikey
@@ -97,8 +100,8 @@ Change voice style (Either ''' + style_names_str + ''').
             os.remove(self.log_file_name + '.prev')
 
     def send_to_chatgpt(self, content, write_log=True):
-        if self.chatgpt_response is not None:
-            return False
+        #if self.chatgpt_response is not None:
+        #    return False
 
         self.chatgpt_messages.append({"role": "user", "content": content})
 
@@ -119,12 +122,14 @@ Change voice style (Either ''' + style_names_str + ''').
             self.recieved_message = ''
             recieved_json = ''
             self.recieved_states_data = None
+            self.lock()
             self.chatgpt_response = openai.ChatCompletion.create(
                 model=self.chatgpt_model_name,
                 messages=chatgpt_messages,
                 stream=True,
                 functions=all_funcs
             )
+            self.unlock()
             is_func = False
             func_name = None
             for chunk in self.chatgpt_response:
@@ -207,3 +212,15 @@ Change voice style (Either ''' + style_names_str + ''').
 
     def get_model_name(self):
         return self.chatgpt_model_name
+
+    def lock(self):
+        while self.is_send_to_chatgpt:
+            time.sleep(0)
+        self.is_send_to_chatgpt = True
+        sleep_time = 0.5 - (time.time() - self.last_time_chatgpt)
+        if sleep_time > 0.0:
+            time.sleep(sleep_time)
+        self.last_time_chatgpt = time.time()
+
+    def unlock(self):
+        self.is_send_to_chatgpt = False

@@ -6,6 +6,8 @@ import subprocess
 import meilisearch
 import json
 import time
+import tiktoken
+import openai
 
 from src import extension
 
@@ -17,6 +19,9 @@ class MemoryExtension(extension.Extension):
     meilisearch_url = 'http://localhost:7700'
     meilisearch_key = 'aSampleMasterKey'
     meilisearch_index = 0
+    chatgpt = None
+    search_limit = 20
+    summarize_tokens = 4096 * 3 / 4
 
     def add_index(self):
         self.meilisearch_index += 1
@@ -39,6 +44,7 @@ class MemoryExtension(extension.Extension):
                 loaded_json = json.load(f)
                 self.meilisearch_index = loaded_json['index']
         self.add_index()
+        self.chatgpt = main_settings.get_mascot_chatgpt()
 
     def get_chatgpt_functions(self):
         if self.function_enabled:
@@ -94,12 +100,12 @@ Ostensibly say "memory" instead of "database" or "search".
             chatgpt_messages_content = next_messages
         chatgpt_messages_content = 'Summarize the information for "' + keywords + '" from the following conversations.\n---\n' + chatgpt_messages_content
 
-        #self.lock_chatgpt()
+        self.chatgpt.lock()
         chatgpt_response = openai.ChatCompletion.create(
             model=self.model,
             messages=[{"role": "user", "content": chatgpt_messages_content}],
         )
-        #self.unlock_chatgpt()
+        self.chatgpt.unlock()
         self.search_history_contents.append((keywords, str(chatgpt_response["choices"][0]["message"]["content"])))
 
     def recv_function(self, messages, function_name, result):
