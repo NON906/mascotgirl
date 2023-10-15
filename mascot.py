@@ -475,7 +475,7 @@ if __name__ == "__main__":
     def http_forward_image():
         global current_path
         global main_settings
-        forward_image = main_settings.forward_image_path
+        forward_image = main_settings.forward_image
         if forward_image is None:
             return JSONResponse(content={'success': False}, status_code=404)
         response = Response(

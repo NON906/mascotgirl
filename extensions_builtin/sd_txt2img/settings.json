@@ -1,0 +1,9 @@
+{
+    "prompt": "",
+    "negative_prompt": "",
+    "prompt_styles": [""],
+    "steps": 20,
+    "restore_faces": false,
+    "tiling": false,
+    "sampler_index": "Euler a"
+}

@@ -15,17 +15,17 @@ class Extension:
     def get_chatgpt_system_message(self):
         return None
 
-    def recv_message(self, messages):
-        pass
-
     def recv_message_streaming(self, messages, streaming_message):
         pass
 
-    def recv_function(self, messages, function_name, result):
-        return None
+    def recv_message(self, messages):
+        pass
 
     def recv_function_streaming(self, messages, function_name, result):
-        pass
+        return None
+
+    def recv_function(self, messages, function_name, result):
+        return None
 
     def remove_last_conversation(self):
         pass

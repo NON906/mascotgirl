@@ -145,8 +145,16 @@ Change voice style (Either ''' + style_names_str + ''').
                         for ext in extension.extensions:
                             ext.recv_message_streaming(self.chatgpt_messages, self.recieved_message)
                     elif func_name is not None:
+                        message = ''
                         for ext in extension.extensions:
-                            ext.recv_function_streaming(self.chatgpt_messages, func_name, self.recieved_states_data)
+                            message_part = ext.recv_function_streaming(self.chatgpt_messages, func_name, self.recieved_states_data)
+                            if type(message_part) is str:
+                                if message != '':
+                                    message += '\n'
+                                message += message_part
+                            self.recieved_message = message
+                        for ext in extension.extensions:
+                            ext.recv_message_streaming(self.chatgpt_messages, self.recieved_message)
                         is_func = True
                 else:
                     self.recieved_message += chunk.choices[0].delta.get('content', '')
@@ -157,7 +165,7 @@ Change voice style (Either ''' + style_names_str + ''').
                 message = ''
                 for ext in extension.extensions:
                     resend_or_message = ext.recv_function(self.chatgpt_messages, func_name, self.recieved_states_data)
-                    if resend_or_message is str:
+                    if type(resend_or_message) is str:
                         if message != '':
                             message += '\n'
                         message += resend_or_message
