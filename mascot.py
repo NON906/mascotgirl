@@ -16,7 +16,7 @@ import argparse
 import uvicorn
 from fastapi import APIRouter, FastAPI
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import base64
@@ -41,7 +41,9 @@ from src import extension
 
 class MascotMainSettings:
     __mascot_image = None
-    __background_image_path = None
+    __background_image = None
+    __forward_image = None
+    __screen_size = None
     __mascot_chatgpt = None
 
     def __init__(self):
@@ -59,12 +61,40 @@ class MascotMainSettings:
                 self.__mascot_image.upload_image(image, skip_image_setting)
 
     @property
-    def background_image_path(self):
-        return self.__background_image_path
+    def screen_size(self):
+        return self.__screen_size
 
-    @background_image_path.setter
-    def background_image_path(self, path):
-        self.__background_image_path = path
+    @screen_size.setter
+    def screen_size(self, size):
+        self.__screen_size = size
+
+    @property
+    def forward_image(self):
+        return self.__forward_image
+
+    def set_forward_image_base64(self, image):
+        self.__forward_image = base64.b64decode(image)
+
+    def set_forward_image(self, image):
+        self.__forward_image = image
+
+    def set_forward_image_path(self, path):
+        with open(path, 'rb') as f:
+            self.__forward_image = f.read()
+
+    @property
+    def background_image(self):
+        return self.__background_image
+
+    def set_background_image_base64(self, image):
+        self.__background_image = base64.b64decode(image)
+
+    def set_background_image(self, image):
+        self.__background_image = image
+
+    def set_background_image_path(self, path):
+        with open(path, 'rb') as f:
+            self.__background_image = f.read()
 
     @property
     def mascot_chatgpt(self):
@@ -117,7 +147,7 @@ if __name__ == "__main__":
 
     main_settings = MascotMainSettings()
     main_settings.set_image(args.image, args.skip_image_setting)
-    main_settings.background_image_path = args.background_image
+    main_settings.set_background_image_path(args.background_image)
 
     http_url = ''
     image_tcp_protocol = 'tcp'
@@ -433,19 +463,39 @@ if __name__ == "__main__":
     def http_background():
         global current_path
         global main_settings
-        background_image = main_settings.background_image_path
+        background_image = main_settings.background_image
         if background_image is None:
             return JSONResponse(content={'success': False}, status_code=404)
-        if current_path in background_image:
-            full_path = background_image
-        else:
-            full_path = current_path + '/' + background_image
-        response = FileResponse(
-            path=full_path,
-            filename=os.path.basename(background_image)
+        response = Response(
+            content=background_image
             )
         return response
     http_router.add_api_route("/background", http_background, methods=["GET"])
+
+    def http_forward_image():
+        global current_path
+        global main_settings
+        forward_image = main_settings.forward_image_path
+        if forward_image is None:
+            return JSONResponse(content={'success': False}, status_code=404)
+        response = Response(
+            content=forward_image
+            )
+        return response
+    http_router.add_api_route("/forward_image", http_forward_image, methods=["GET"])
+
+    class ScreenSizeRequest(BaseModel):
+        width: int
+        height: int
+
+    def http_screen_size(request: ScreenSizeRequest):
+        global main_settings
+        main_settings.screen_size = (request.width, request.height)
+        json_compatible_item_data = jsonable_encoder({
+            'success': True
+            })
+        return JSONResponse(content=json_compatible_item_data)
+    http_router.add_api_route("/screen_size", http_screen_size, methods=["POST"])
 
     stop_main_thread = False
 
