@@ -127,9 +127,20 @@ class SDTxt2ImgExtension(extension.Extension):
             self.__thread = threading.Thread(target=self.txt2img_thread_func)
             self.__thread.start()
         self.__thread.join()
-        self.__is_generate = False
+        self.__is_show = True
         if 'message' in result:
             return result['message']
         return '画像を生成しました'
+
+    def recv_message_streaming(self, messages, streaming_message):
+        if not self.__is_generate and self.__is_show:
+            self.__main_settings.set_forward_image(None)
+            self.__is_show = False
+
+    def recv_message(self, messages):
+        if not self.__is_generate and self.__is_show:
+            self.__main_settings.set_forward_image(None)
+            self.__is_show = False
+        self.__is_generate = False
 
 extension.extensions.append(SDTxt2ImgExtension())
