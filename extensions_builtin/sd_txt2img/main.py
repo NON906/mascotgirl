@@ -46,6 +46,21 @@ class SDTxt2ImgExtension(extension.Extension):
         return None
 
     def txt2img_thread_func(self):
+        def get_add_keywords(prompt, keywords):
+            add_prompt = ''
+            prompt_list = prompt.split(',')
+            for add_word, targets in keywords.items():
+                add_flag = False
+                for prompt_word in prompt_list:
+                    for target in targets:
+                        if target in prompt_word:
+                            add_flag = True
+                if add_flag:
+                    if add_prompt != '':
+                        add_prompt += ', '
+                    add_prompt += add_word
+            return add_prompt
+
         json_path = os.path.join(os.path.dirname(__file__), 'settings.json')
         with open(json_path, 'r') as f:
             loaded_json = json.load(f)
@@ -54,7 +69,29 @@ class SDTxt2ImgExtension(extension.Extension):
         while loaded_json['width'] > self.__width:
             loaded_json['height'] = loaded_json['height'] * self.__width // loaded_json['width']
             loaded_json['width'] = self.__width
-        loaded_json['prompt'] = self.__generate_prompt
+            
+        if not 'prompt' in loaded_json:
+            loaded_json['prompt'] = ''
+        if not 'negative_prompt' in loaded_json:
+            loaded_json['negative_prompt'] = ''
+
+        if loaded_json['prompt'] != '':
+            loaded_json['prompt'] += ', '
+        loaded_json['prompt'] += self.__generate_prompt
+
+        keywords_path = os.path.join(os.path.dirname(__file__), 'keywords.json')
+        if os.path.isfile(keywords_path):
+            with open(keywords_path, 'r') as f:
+                keywords_json = json.load(f)
+            add_prompt = get_add_keywords(self.__generate_prompt, keywords_json['prompt'])
+            if add_prompt != '':
+                loaded_json['prompt'] += ', ' + add_prompt
+            add_negative = get_add_keywords(self.__generate_prompt, keywords_json['negative_prompt'])
+            if add_negative != '':
+                if loaded_json['negative_prompt'] != '':
+                    loaded_json['negative_prompt'] += ', '
+                loaded_json['negative_prompt'] += add_negative
+
         request_result = requests.post(self.__url + '/sdapi/v1/txt2img', data=json.dumps(loaded_json))
         result_json = request_result.json()
         self.__main_settings.set_forward_image_base64(result_json['images'][0])
