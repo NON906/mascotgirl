@@ -33,14 +33,14 @@ if __name__ == "__main__":
         make_empty_file('.installed/.tha3')
 
     while not os.path.isfile('.installed/.voicevox'):
-        select = input('どのバージョンのVOICEVOXをインストールしますか？ [CPU/CUDA] (CUDA): ')
+        select = input('どのバージョンのVOICEVOXをインストールしますか？ [CPU/CUDA/DirectML] (CUDA): ')
         is_selected = True
         if select is None or select == '' or select == 'CUDA':
             wget('https://github.com/VOICEVOX/voicevox_engine/releases/download/0.14.5/voicevox_engine-windows-nvidia-0.14.5.7z.001', 'voicevox_engine-windows.7z.001')
         elif select == 'CPU':
             wget('https://github.com/VOICEVOX/voicevox_engine/releases/download/0.14.5/voicevox_engine-windows-cpu-0.14.5.7z.001', 'voicevox_engine-windows.7z.001')
-        #elif select == 'DirectML':
-        #    wget('https://github.com/VOICEVOX/voicevox_engine/releases/download/0.14.5/voicevox_engine-windows-directml-0.14.5.7z.001', 'voicevox_engine-windows.7z.001')
+        elif select == 'DirectML':
+            wget('https://github.com/VOICEVOX/voicevox_engine/releases/download/0.14.5/voicevox_engine-windows-directml-0.14.5.7z.001', 'voicevox_engine-windows.7z.001')
         else:
             continue
         with py7zr.SevenZipFile('voicevox_engine-windows.7z.001', mode='r') as archive:
@@ -60,11 +60,17 @@ if __name__ == "__main__":
         if select is None or select == '' or select == 'N' or select == 'n':
             break
         elif select == 'Y' or select == 'y':
-            wget('https://huggingface.co/wok000/vcclient000/resolve/main/MMVCServerSIO_win_onnxgpu-cuda_v.1.5.3.14.zip', 'MMVCServerSIO_win_onnxgpu-cuda.zip')
-            shutil.unpack_archive('MMVCServerSIO_win_onnxgpu-cuda.zip', 'bin')
+            select = input('どのバージョンのVC Clientをインストールしますか？ [CUDA/DirectML] (CUDA): ')
+            if select is None or select == '' or select == 'CUDA':
+                wget('https://huggingface.co/wok000/vcclient000/resolve/main/MMVCServerSIO_win_onnxgpu-cuda_v.1.5.3.14.zip', 'MMVCServerSIO_win.zip')
+            elif select == 'DirectML':
+                wget('https://huggingface.co/wok000/vcclient000/resolve/main/MMVCServerSIO_win_onnxdirectML-cuda_v.1.5.3.14.zip', 'MMVCServerSIO_win.zip')
+            else:
+                continue
+            shutil.unpack_archive('MMVCServerSIO_win.zip', 'bin')
             os.rename('bin/MMVCServerSIO/voice-changer-native-client.exe', 'bin/MMVCServerSIO/voice-changer-native-client_.exe')
             make_empty_file('.installed/.vc')
-            os.remove('MMVCServerSIO_win_onnxgpu-cuda.zip')
+            os.remove('MMVCServerSIO_win.zip')
         else:
             continue
 
