@@ -38,6 +38,7 @@ from src.animation_breathing import AnimationBreathing
 from src.voice_changer import check_voice_changer, VoiceChangerRVC
 from src.named_pipe import NamedPipeAudio
 from src import extension
+import install
 
 class MascotMainSettings:
     __mascot_image = None
@@ -144,6 +145,9 @@ if __name__ == "__main__":
     parser.add_argument('--ngrok_auth_token')
     parser.add_argument('--show_qrcode', action='store_true')
     args = parser.parse_args()
+
+    for ext_dir_name in os.listdir('extensions'):
+        install.install_extensions(ext_dir_name)
 
     main_settings = MascotMainSettings()
     main_settings.set_image(args.image, args.skip_image_setting)

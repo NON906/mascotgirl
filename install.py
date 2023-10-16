@@ -17,6 +17,12 @@ def make_empty_file(path: str):
     with open(path, 'w') as o:
         o.write('')
 
+def install_extensions(name: str):
+    if os.path.isfile(os.path.join('extensions', name, 'install.py')) and not os.path.isfile(os.path.join('extensions', name, '.installed')):
+        ext = import_module('extensions.' + name + '.install')
+        ext.install()
+        make_empty_file(os.path.join('extensions', name, '.installed'))
+
 if __name__ == "__main__":
     while not os.path.isfile('.installed/.tha3'):
         wget('https://www.dropbox.com/s/zp3e5ox57sdws3y/editor.pt?dl=0', 'mascotgirl/talking_head_anime_3_demo/data/models/standard_float/editor.pt')
@@ -69,7 +75,5 @@ if __name__ == "__main__":
             select = input('拡張機能 ' + dir_name + ' をインストールしますか？ [y/N]: ')
             if select == 'Y' or select == 'y':
                 shutil.copytree(dir_path, os.path.join('extensions', dir_name))
-                if os.path.isfile(os.path.join('extensions', dir_name, 'install.py')):
-                    ext = import_module('extensions.' + dir_name + '.install')
-                    ext.install()
+                install_extensions(dir_name)
     os.chdir('..')
