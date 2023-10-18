@@ -5,5 +5,7 @@
     "steps": 20,
     "restore_faces": false,
     "tiling": false,
-    "sampler_index": "Euler a"
+    "sampler_index": "Euler a",
+    "width": 512,
+    "save_images": true
 }

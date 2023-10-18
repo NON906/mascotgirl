@@ -10,7 +10,6 @@ from src import extension
 
 class SDTxt2ImgExtension(extension.Extension):
     __url = 'http://127.0.0.1:7860'
-    __width = 512
     __generate_prompt = None
     __main_settings = None
     __thread = None
@@ -64,11 +63,25 @@ class SDTxt2ImgExtension(extension.Extension):
         json_path = os.path.join(os.path.dirname(__file__), 'settings.json')
         with open(json_path, 'r') as f:
             loaded_json = json.load(f)
-        loaded_json['width'] = self.__main_settings.screen_size[0]
-        loaded_json['height'] = self.__main_settings.screen_size[1]
-        while loaded_json['width'] > self.__width:
-            loaded_json['height'] = loaded_json['height'] * self.__width // loaded_json['width']
-            loaded_json['width'] = self.__width
+        width = -1
+        height = -1
+        if 'width' in loaded_json:
+            width = loaded_json['width']
+        if 'height' in loaded_json:
+            height = loaded_json['height']
+        if width <= 0 and height <= 0:
+            width = 512
+        if width <= 0 or height <= 0:
+            loaded_json['width'] = self.__main_settings.screen_size[0]
+            loaded_json['height'] = self.__main_settings.screen_size[1]
+            if width > 0:
+                if loaded_json['width'] > width:
+                    loaded_json['height'] = loaded_json['height'] * width // loaded_json['width']
+                    loaded_json['width'] = width
+            elif height > 0:
+                if loaded_json['height'] > height:
+                    loaded_json['width'] = loaded_json['width'] * height // loaded_json['height']
+                    loaded_json['height'] = height
             
         if not 'prompt' in loaded_json:
             loaded_json['prompt'] = ''
