@@ -46,6 +46,8 @@ class MascotImage:
 
     pose_values = [0.0 for _ in range(10)]
 
+    is_uploading = False
+
     def __init__(self, mode='standard_float'):
         self.device = torch.device('cuda')
         try:
@@ -115,6 +117,9 @@ class MascotImage:
         return pose.to(self.device)
 
     def update(self):
+        if self.is_uploading:
+            return
+
         if self.torch_input_image is None:
             return
 
@@ -142,19 +147,23 @@ class MascotImage:
         self.last_pose = pose
 
     def upload_image(self, numpy_content, skip_setting):
+        self.is_uploading = True
         if not skip_setting:
             numpy_content = image_setting.image_setting(numpy_content)
             if numpy_content is None:
+                self.is_uploading = False
                 return False
         pil_image = resize_PIL_image(PIL.Image.fromarray(numpy_content), size=(512,512))
         w, h = pil_image.size
         if pil_image.mode != 'RGBA':
             self.torch_input_image = None
+            self.is_uploading = False
             return False
         else:
             self.torch_input_image = extract_pytorch_image_from_PIL_image(pil_image).to(self.device)
             if self.poser.get_dtype() == torch.half:
                 self.torch_input_image = self.torch_input_image.half()
+        self.is_uploading = False
         return True
 
     def get_numpy_image(self):

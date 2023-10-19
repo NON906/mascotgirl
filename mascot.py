@@ -516,6 +516,8 @@ if __name__ == "__main__":
 
     start_time = 0.0
 
+    mascot_image.update()
+
     def main_thread_func():
         global image_pipe
 
