@@ -54,12 +54,21 @@ class MascotMainSettings:
     def mascot_image(self):
         return self.__mascot_image
 
-    def set_image(self, new_image_path, skip_image_setting=False):
+    def set_image_path(self, new_image_path, skip_image_setting=False):
         if new_image_path is not None:
             image = cv2.imread(new_image_path, -1)
             image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
             if image is not None:
                 self.__mascot_image.upload_image(image, skip_image_setting)
+                
+    def set_image(self, new_image, skip_image_setting=False):
+        image = cv2.imdecode(numpy.frombuffer(new_image, dtype=numpy.uint8), -1)
+        image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
+        if image is not None:
+            self.__mascot_image.upload_image(image, skip_image_setting)       
+
+    def set_image_base64(self, new_image, skip_image_setting=False):
+        return self.set_image(base64.b64decode(new_image), skip_image_setting)
 
     @property
     def screen_size(self):
@@ -150,7 +159,7 @@ if __name__ == "__main__":
         install.install_extensions(ext_dir_name)
 
     main_settings = MascotMainSettings()
-    main_settings.set_image(args.image, args.skip_image_setting)
+    main_settings.set_image_path(args.image, args.skip_image_setting)
     main_settings.set_background_image_path(args.background_image)
 
     http_url = ''

@@ -1,6 +1,6 @@
 {
     "prompt": "",
-    "negative_prompt": "",
+    "negative_prompt": "flat color, flat shading, nsfw, retro style, poor quality, bad face, bad fingers, bad anatomy, missing fingers, low res, cropped, signature, watermark, username, artist name, text",
     "styles": [""],
     "steps": 20,
     "restore_faces": false,
