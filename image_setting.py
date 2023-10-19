@@ -9,7 +9,8 @@ def image_setting(image, cascade_path='./lbpcascade_animeface.xml'):
     import rembg
 
     if image.shape[2] != 4 or image[0, 0, 3] >= 255:
-        image = rembg.remove(image)
+        session = rembg.new_session('isnet-anime')
+        image = rembg.remove(image, session=session)
 
     cascade = cv2.CascadeClassifier(cascade_path)
 
