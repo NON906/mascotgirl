@@ -510,6 +510,34 @@ if __name__ == "__main__":
         return JSONResponse(content=json_compatible_item_data)
     http_router.add_api_route("/screen_size", http_screen_size, methods=["POST"])
 
+    def http_get_settings():
+        settings = []
+        for index, ext in enumerate(extension.extensions):
+            ext_settings = ext.get_settings()
+            if ext_settings is not None:
+                for setting in ext_settings:
+                    setting['index'] = index
+                    settings.append(setting)
+        json_compatible_item_data = jsonable_encoder({
+            'success': True,
+            'settings': settings,
+            })
+        return JSONResponse(content=json_compatible_item_data)
+    http_router.add_api_route("/get_settings", http_get_settings, methods=["GET"])
+
+    class SetSettingRequest(BaseModel):
+        index: int
+        name: str
+        value: str
+
+    def http_set_setting(request: SetSettingRequest):
+        extension.extensions[request.index].set_setting(request.name, request.value)
+        json_compatible_item_data = jsonable_encoder({
+            'success': True,
+            })
+        return JSONResponse(content=json_compatible_item_data)
+    http_router.add_api_route("/set_setting", http_set_setting, methods=["POST"])
+
     stop_main_thread = False
 
     default_stdout = sys.stdout

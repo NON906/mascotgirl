@@ -33,6 +33,12 @@ class Extension:
     def clear(self):
         pass
 
+    def get_settings(self):
+        return []
+
+    def set_setting(self, name, value):
+        pass
+
 from importlib import import_module
 extension_modules = [
     import_module('extensions.' + f + '.main') for f in os.listdir('extensions') if os.path.isdir(os.path.join('extensions', f))

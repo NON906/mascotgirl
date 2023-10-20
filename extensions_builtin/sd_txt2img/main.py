@@ -15,6 +15,7 @@ class SDTxt2ImgExtension(extension.Extension):
     __url = 'http://127.0.0.1:7860'
     _generate_prompt = None
     _main_settings = None
+    _keywords_json = None
 
     def init(self, main_settings):
         global global_loaded_json
@@ -23,6 +24,11 @@ class SDTxt2ImgExtension(extension.Extension):
             json_path = os.path.join(os.path.dirname(__file__), 'settings.json')
             with open(json_path, 'r') as f:
                 global_loaded_json = json.load(f)
+        if self._keywords_json is None:
+            keywords_path = os.path.join(os.path.dirname(__file__), 'keywords.json')
+            if os.path.isfile(keywords_path):
+                with open(keywords_path, 'r') as f:
+                    self._keywords_json = json.load(f)
 
     def txt2img_thread_func(self, override_settings={}):
         def get_add_keywords(prompt, keywords):
@@ -75,10 +81,8 @@ class SDTxt2ImgExtension(extension.Extension):
             loaded_json['prompt'] += ', '
         loaded_json['prompt'] += self._generate_prompt
 
-        keywords_path = os.path.join(os.path.dirname(__file__), 'keywords.json')
-        if os.path.isfile(keywords_path):
-            with open(keywords_path, 'r') as f:
-                keywords_json = json.load(f)
+        keywords_json = self._keywords_json
+        if keywords_json is not None:
             add_prompt = get_add_keywords(self._generate_prompt, keywords_json['prompt'])
             if add_prompt != '':
                 loaded_json['prompt'] += ', ' + add_prompt
@@ -95,8 +99,23 @@ class PictureExtension(SDTxt2ImgExtension):
     __is_show = False
     __is_generate = False
     __thread = None
+    __loaded_json = None
+
+    def init(self, main_settings):
+        super().init(main_settings)
+        json_path = os.path.join(os.path.dirname(__file__), 'picture_settings.json')
+        if os.path.isfile(json_path):
+            with open(json_path, 'r') as f:
+                self.__loaded_json = json.load(f)
+        else:
+            self.__loaded_json = {
+                'enabled': True,
+            }
 
     def get_chatgpt_functions(self):
+        if not self.__loaded_json['enabled']:
+            return None
+
         return [{
             "name": "sd_generate_picture",
             "description": """
@@ -180,14 +199,80 @@ There is no memory function, so please carry over the prompts from past conversa
             self.__is_show = True
         self.__is_generate = False
 
+    def get_settings(self):
+        global global_loaded_json
+
+        return [
+            {
+                'type': 'Label',
+                'text': '画像生成（共通）',
+            },
+            {
+                'type': 'Editor',
+                'name': 'global_setting',
+                'text': '画像生成設定',
+                'value': json.dumps(global_loaded_json),
+            },
+            {
+                'type': 'Editor',
+                'name': 'custom_add_prompt_setting',
+                'text': '自動追加（プロンプト・lora）設定',
+                'value': json.dumps(self._keywords_json),
+            },
+            {
+                'type': 'Label',
+                'text': '画像生成（一枚絵）',
+            },
+            {
+                'type': 'Toggle',
+                'name': 'enabled',
+                'text': '有効/無効',
+                'value': str(self.__loaded_json['enabled']),
+            },
+        ]
+
+    def set_setting(self, name, value):
+        global global_loaded_json
+        if name == 'global_setting':
+            global_loaded_json = json.loads(value)
+            json_path = os.path.join(os.path.dirname(__file__), 'settings.json')
+            with open(json_path, 'w') as f:
+                f.write(value)
+        elif name == 'custom_add_prompt_setting':
+            self._keywords_json = json.loads(value)
+            keywords_path = os.path.join(os.path.dirname(__file__), 'keywords.json')
+            with open(keywords_path, 'w') as f:
+                f.write(value)
+        else:
+            self.__loaded_json[name] = value
+            json_path = os.path.join(os.path.dirname(__file__), 'picture_settings.json')
+            with open(json_path, 'w') as f:
+                json.dump(self.__loaded_json, f)
+
 class CharacterAndBackgroundExtension(SDTxt2ImgExtension):
     __character_prompt = None
     __background_prompt = None
     __thread = None
     __is_generate = False
+    __loaded_json = None
+
+    def init(self, main_settings):
+        super().init(main_settings)
+        json_path = os.path.join(os.path.dirname(__file__), 'chara_and_back_settings.json')
+        if os.path.isfile(json_path):
+            with open(json_path, 'r') as f:
+                self.__loaded_json = json.load(f)
+        else:
+            self.__loaded_json = {
+                'character_enabled': True,
+                'background_enabled': True,
+            }
 
     def get_chatgpt_functions(self):
-        return [{
+        if not self.__loaded_json['character_enabled'] and not self.__loaded_json['background_enabled']:
+            return None
+
+        ret = [{
             "name": "sd_generate_character_and_background",
             "description": """
 Generate character image and/or background image from prompt by Stable Diffusion.
@@ -221,6 +306,15 @@ The following are included from the beginning:
                 "required": ["message"],
             },
         }]
+
+        if not self.__loaded_json['character_enabled']:
+            del ret["parameters"]["properties"]["character_prompt"]
+            ret["description"] += '\nNOTE: Character changing is currently disabled.'
+        if not self.__loaded_json['background_enabled']:
+            del ret["parameters"]["properties"]["background_prompt"]
+            ret["description"] += '\nNOTE: Background changing is currently disabled.'
+
+        return ret
 
     def get_chatgpt_system_message(self):
         if self.__character_prompt is not None:
@@ -289,6 +383,32 @@ The following are included from the beginning:
         if self.__is_generate:
             self.__thread.join()
         self.__is_generate = False
+
+    def get_settings(self):
+        return [
+            {
+                'type': 'Label',
+                'text': '画像生成（キャラクター・背景）',
+            },
+            {
+                'type': 'Toggle',
+                'name': 'character_enabled',
+                'text': 'キャラクターの有効/無効',
+                'value': str(self.__loaded_json['character_enabled']),
+            },
+            {
+                'type': 'Toggle',
+                'name': 'background_enabled',
+                'text': '背景の有効/無効',
+                'value': str(self.__loaded_json['background_enabled']),
+            },
+        ]
+
+    def set_setting(self, name, value):
+        self.__loaded_json[name] = value
+        json_path = os.path.join(os.path.dirname(__file__), 'chara_and_back_settings.json')
+        with open(json_path, 'w') as f:
+            json.dump(self.__loaded_json, f)
 
 extension.extensions.append(PictureExtension())
 extension.extensions.append(CharacterAndBackgroundExtension())
