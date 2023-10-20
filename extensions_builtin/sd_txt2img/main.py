@@ -10,25 +10,30 @@ import copy
 from src import extension
 
 global_loaded_json = None
+global_loaded_json_raw_txt = None
 
 class SDTxt2ImgExtension(extension.Extension):
     __url = 'http://127.0.0.1:7860'
     _generate_prompt = None
     _main_settings = None
     _keywords_json = None
+    _keywords_json_raw_txt = None
 
     def init(self, main_settings):
         global global_loaded_json
+        global global_loaded_json_raw_txt
         self._main_settings = main_settings
         if global_loaded_json is None:
             json_path = os.path.join(os.path.dirname(__file__), 'settings.json')
             with open(json_path, 'r') as f:
-                global_loaded_json = json.load(f)
+                global_loaded_json_raw_txt = f.read()
+                global_loaded_json = json.loads(global_loaded_json_raw_txt)
         if self._keywords_json is None:
             keywords_path = os.path.join(os.path.dirname(__file__), 'keywords.json')
             if os.path.isfile(keywords_path):
                 with open(keywords_path, 'r') as f:
-                    self._keywords_json = json.load(f)
+                    self._keywords_json_raw_txt = f.read()
+                    self._keywords_json = json.loads(self._keywords_json_raw_txt)
 
     def txt2img_thread_func(self, override_settings={}):
         def get_add_keywords(prompt, keywords):
@@ -211,13 +216,13 @@ There is no memory function, so please carry over the prompts from past conversa
                 'type': 'Editor',
                 'name': 'global_setting',
                 'text': '画像生成設定',
-                'value': json.dumps(global_loaded_json),
+                'value': global_loaded_json_raw_txt,
             },
             {
                 'type': 'Editor',
                 'name': 'custom_add_prompt_setting',
                 'text': '自動追加（プロンプト・lora）設定',
-                'value': json.dumps(self._keywords_json),
+                'value': self._keywords_json_raw_txt,
             },
             {
                 'type': 'Label',
@@ -233,12 +238,15 @@ There is no memory function, so please carry over the prompts from past conversa
 
     def set_setting(self, name, value):
         global global_loaded_json
+        global global_loaded_json_raw_txt
         if name == 'global_setting':
+            global_loaded_json_raw_txt = value
             global_loaded_json = json.loads(value)
             json_path = os.path.join(os.path.dirname(__file__), 'settings.json')
             with open(json_path, 'w') as f:
                 f.write(value)
         elif name == 'custom_add_prompt_setting':
+            self._keywords_json_raw_txt = value
             self._keywords_json = json.loads(value)
             keywords_path = os.path.join(os.path.dirname(__file__), 'keywords.json')
             with open(keywords_path, 'w') as f:
