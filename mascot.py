@@ -71,7 +71,11 @@ class MascotMainSettings:
             self.__mascot_image.upload_image(image, skip_image_setting, self.__image_rembg_model_name)       
 
     def set_image_base64(self, new_image, skip_image_setting=False):
-        return self.set_image(base64.b64decode(new_image), skip_image_setting)
+        self.set_image(base64.b64decode(new_image), skip_image_setting)
+
+    def set_image_rgba(self, image, skip_image_setting=False):
+        if image is not None:
+            self.__mascot_image.upload_image(image, skip_image_setting, self.__image_rembg_model_name)      
 
     @property
     def screen_size(self):

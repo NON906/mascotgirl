@@ -60,8 +60,6 @@ class VoiceChangerRVC:
                 },
                 "indexFile": os.path.basename(index_file),
                 "defaultTune": trans,
-                "samplingRate": 40000,
-                "f0": False,
                 "embedder": "hubert_base",
                 "sampleId": 'mascotgirl', 
             },

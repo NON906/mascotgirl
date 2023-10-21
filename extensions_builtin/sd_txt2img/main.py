@@ -6,8 +6,12 @@ import threading
 import os
 import json
 import copy
+import cv2
+import numpy
+import base64
 
 from src import extension
+import image_setting
 
 global_loaded_json = None
 global_loaded_json_raw_txt = None
@@ -263,6 +267,7 @@ class CharacterAndBackgroundExtension(SDTxt2ImgExtension):
     __thread = None
     __is_generate = False
     __loaded_json = None
+    __new_chara_image = None
 
     def init(self, main_settings):
         super().init(main_settings)
@@ -340,7 +345,11 @@ The following are included from the beginning:
                 'height': 1024,
                 'prompt': 'solo, standing, simple background, no background, solid color background, looking at viewer, open mouth, full body standing, from front, ' + global_loaded_json['prompt'],
             })
-            self._main_settings.set_image_base64(result_json['images'][0])
+            image = cv2.imdecode(numpy.frombuffer(base64.b64decode(result_json['images'][0]), dtype=numpy.uint8), -1)
+            image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
+            self.__new_chara_image = image_setting.image_setting(image)
+        else:
+            self.__new_chara_image = None
         if self.__background_prompt is not None:
             self._generate_prompt = self.__background_prompt
             result_json = self.txt2img_thread_func({
@@ -390,6 +399,8 @@ The following are included from the beginning:
     def recv_message(self, messages):
         if self.__is_generate:
             self.__thread.join()
+            if self.__new_chara_image is not None:
+                self._main_settings.set_image_rgba(self.__new_chara_image, True)
         self.__is_generate = False
 
     def get_settings(self):
