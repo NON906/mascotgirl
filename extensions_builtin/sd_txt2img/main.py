@@ -299,7 +299,7 @@ There is no memory function, so please carry over the prompts from past conversa
                         "description": '''
 Prompt for generate character image.
 The following are included from the beginning:
-    solo, standing, simple background, no background, solid color background, looking at viewer, open mouth, full body standing
+    solo, standing, simple background, no background, solid color background, looking at viewer, open mouth, full body standing, from front
 ''',
                     },
                     "background_prompt": {
@@ -338,7 +338,7 @@ The following are included from the beginning:
             result_json = self.txt2img_thread_func({
                 'width': 512,
                 'height': 1024,
-                'prompt': 'solo, standing, simple background, no background, solid color background, looking at viewer, open mouth, full body standing, ' + global_loaded_json['prompt'],
+                'prompt': 'solo, standing, simple background, no background, solid color background, looking at viewer, open mouth, full body standing, from front, ' + global_loaded_json['prompt'],
             })
             self._main_settings.set_image_base64(result_json['images'][0])
         if self.__background_prompt is not None:

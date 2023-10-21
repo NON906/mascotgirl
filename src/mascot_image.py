@@ -146,10 +146,10 @@ class MascotImage:
         self.last_torch_input_image = self.torch_input_image
         self.last_pose = pose
 
-    def upload_image(self, numpy_content, skip_setting):
+    def upload_image(self, numpy_content, skip_setting, rembg_model_name='isnet-anime'):
         self.is_uploading = True
         if not skip_setting:
-            numpy_content = image_setting.image_setting(numpy_content)
+            numpy_content = image_setting.image_setting(numpy_content, model_name=rembg_model_name)
             if numpy_content is None:
                 self.is_uploading = False
                 return False

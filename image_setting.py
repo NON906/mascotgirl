@@ -4,17 +4,28 @@
 import cv2
 import numpy as np
 import sys
+import time
+import rembg
+import os
 
-def image_setting(image, cascade_path='./lbpcascade_animeface.xml'):
-    import rembg
+rembg_session = None
+cascade_path_default = os.path.join(os.getcwd(), 'lbpcascade_animeface.xml')
+cascade = None
 
-    if image.shape[2] != 4 or image[0, 0, 3] >= 255:
-        session = rembg.new_session('isnet-anime')
-        image = rembg.remove(image, session=session)
+def image_setting(image, cascade_path=None, model_name='isnet-anime'):
+    global rembg_session
+    global cascade_path_default
+    global cascade
 
-    cascade = cv2.CascadeClassifier(cascade_path)
+    if cascade_path is None:
+        cascade_path = cascade_path_default
+    if cascade is None:
+        cascade = cv2.CascadeClassifier(cascade_path)
 
-    image_gray = cv2.cvtColor(image, cv2.COLOR_RGBA2GRAY)
+    if image.shape[2] == 4:
+        image_gray = cv2.cvtColor(image, cv2.COLOR_RGBA2GRAY)
+    elif image.shape[2] == 3:
+        image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     image_gray = cv2.equalizeHist(image_gray)
 
     for min_neighbors in range(2, 6):
@@ -32,6 +43,11 @@ def image_setting(image, cascade_path='./lbpcascade_animeface.xml'):
 
     mat = cv2.getAffineTransform(src_pts, dst_pts)
     dst = cv2.warpAffine(image, mat, (512, 512))
+
+    if image.shape[2] != 4 or image[0, 0, 3] >= 255:
+        if rembg_session is None:
+            rembg_session = rembg.new_session(model_name)
+        dst = rembg.remove(dst, session=rembg_session)
 
     return dst
 

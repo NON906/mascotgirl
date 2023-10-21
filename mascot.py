@@ -47,8 +47,11 @@ class MascotMainSettings:
     __screen_size = None
     __mascot_chatgpt = None
 
-    def __init__(self):
-        self.__mascot_image = MascotImage()
+    __image_rembg_model_name = 'isnet-anime'
+
+    def __init__(self, image_mode='standard_float', image_rembg_model_name='isnet-anime'):
+        self.__mascot_image = MascotImage(mode=image_mode)
+        self.__image_rembg_model_name = image_rembg_model_name
 
     @property
     def mascot_image(self):
@@ -59,13 +62,13 @@ class MascotMainSettings:
             image = cv2.imread(new_image_path, -1)
             image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
             if image is not None:
-                self.__mascot_image.upload_image(image, skip_image_setting)
+                self.__mascot_image.upload_image(image, skip_image_setting, self.__image_rembg_model_name)
                 
     def set_image(self, new_image, skip_image_setting=False):
         image = cv2.imdecode(numpy.frombuffer(new_image, dtype=numpy.uint8), -1)
         image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
         if image is not None:
-            self.__mascot_image.upload_image(image, skip_image_setting)       
+            self.__mascot_image.upload_image(image, skip_image_setting, self.__image_rembg_model_name)       
 
     def set_image_base64(self, new_image, skip_image_setting=False):
         return self.set_image(base64.b64decode(new_image), skip_image_setting)
@@ -126,6 +129,7 @@ if __name__ == "__main__":
     parser.add_argument('--chatgpt_model_name', default='gpt-3.5-turbo')
     parser.add_argument('--image')
     parser.add_argument('--skip_image_setting', action='store_true')
+    parser.add_argument('--image_rembg_model_name', default='isnet-anime')
     parser.add_argument('--image_mode', default='standard_float')
     parser.add_argument('--framerate', type=float, default=30.0)
     parser.add_argument('--image_pipe_name')
