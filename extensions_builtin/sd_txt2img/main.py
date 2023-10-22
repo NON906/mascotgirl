@@ -304,7 +304,7 @@ There is no memory function, so please carry over the prompts from past conversa
                         "description": '''
 Prompt for generate character image.
 The following are included from the beginning:
-    solo, standing, simple background, no background, solid color background, looking at viewer, open mouth, full body standing, from front
+    solo, standing, simple background, no background, solid color background, looking at viewer, open mouth, from front
 ''',
                     },
                     "background_prompt": {
@@ -338,16 +338,41 @@ The following are included from the beginning:
 
     def thread_func(self):
         global global_loaded_json
+        def read_image():
+            with open(os.path.join(os.path.dirname(__file__), 'openpose_face.png'), 'rb') as f:
+                file_bytes = f.read()
+            encoded_image = base64.b64encode(file_bytes).decode('utf-8')
+            return encoded_image
+
         if self.__character_prompt is not None:
             self._generate_prompt = self.__character_prompt
             result_json = self.txt2img_thread_func({
                 'width': 512,
-                'height': 1024,
-                'prompt': 'solo, standing, simple background, no background, solid color background, looking at viewer, open mouth, full body standing, from front, ' + global_loaded_json['prompt'],
+                'height': 512,
+                'prompt': 'solo, standing, simple background, no background, solid color background, looking at viewer, open mouth, from front, ' + global_loaded_json['prompt'],
+                'alwayson_scripts': {
+                    "controlnet": {
+                        "args": [
+                            {
+                                "enabled": True,
+                                "module": "none",
+                                "model": "openpose",
+                                "weight": 1.0,
+                                "image": read_image(),
+                                "resize_mode": 1,
+                                "lowvram": False,
+                                "guidance_start": 0.0,
+                                "guidance_end": 1.0,
+                                "control_mode": 0,
+                                "pixel_perfect": False
+                            }
+                        ]
+                    }
+                }
             })
             image = cv2.imdecode(numpy.frombuffer(base64.b64decode(result_json['images'][0]), dtype=numpy.uint8), -1)
             image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
-            self.__new_chara_image = image_setting.image_setting(image)
+            self.__new_chara_image = image_setting.image_setting(image, skip_reshape=True)
         else:
             self.__new_chara_image = None
         if self.__background_prompt is not None:

@@ -12,37 +12,40 @@ rembg_session = None
 cascade_path_default = os.path.join(os.getcwd(), 'lbpcascade_animeface.xml')
 cascade = None
 
-def image_setting(image, cascade_path=None, model_name='isnet-anime'):
+def image_setting(image, cascade_path=None, model_name='isnet-anime', skip_reshape=False):
     global rembg_session
     global cascade_path_default
     global cascade
 
-    if cascade_path is None:
-        cascade_path = cascade_path_default
-    if cascade is None:
-        cascade = cv2.CascadeClassifier(cascade_path)
+    if not skip_reshape:
+        if cascade_path is None:
+            cascade_path = cascade_path_default
+        if cascade is None:
+            cascade = cv2.CascadeClassifier(cascade_path)
 
-    if image.shape[2] == 4:
-        image_gray = cv2.cvtColor(image, cv2.COLOR_RGBA2GRAY)
-    elif image.shape[2] == 3:
-        image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    image_gray = cv2.equalizeHist(image_gray)
+        if image.shape[2] == 4:
+            image_gray = cv2.cvtColor(image, cv2.COLOR_RGBA2GRAY)
+        elif image.shape[2] == 3:
+            image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        image_gray = cv2.equalizeHist(image_gray)
 
-    for min_neighbors in range(2, 6):
-        faces = cascade.detectMultiScale(image_gray, minNeighbors=min_neighbors)
-        if len(faces) == 1:
-            break
-    if len(faces) != 1:
-        print('Error: Detect faces: ' + str(len(faces)), file=sys.stderr)
-        return None
-    
-    x, y, w, h = faces[0]
-    src_pts = np.float32([[x, y - h * 0.15], [x + w, y - h * 0.15], [x + w, y + h * 0.85]])
-    DST_PADDING = 16
-    dst_pts = np.float32([[192 + DST_PADDING, 64 + DST_PADDING], [320 - DST_PADDING, 64 + DST_PADDING], [320 - DST_PADDING, 192 - DST_PADDING]])
+        for min_neighbors in range(2, 6):
+            faces = cascade.detectMultiScale(image_gray, minNeighbors=min_neighbors)
+            if len(faces) == 1:
+                break
+        if len(faces) != 1:
+            print('Error: Detect faces: ' + str(len(faces)), file=sys.stderr)
+            return None
+        
+        x, y, w, h = faces[0]
+        src_pts = np.float32([[x, y - h * 0.15], [x + w, y - h * 0.15], [x + w, y + h * 0.85]])
+        DST_PADDING = 16
+        dst_pts = np.float32([[192 + DST_PADDING, 64 + DST_PADDING], [320 - DST_PADDING, 64 + DST_PADDING], [320 - DST_PADDING, 192 - DST_PADDING]])
 
-    mat = cv2.getAffineTransform(src_pts, dst_pts)
-    dst = cv2.warpAffine(image, mat, (512, 512))
+        mat = cv2.getAffineTransform(src_pts, dst_pts)
+        dst = cv2.warpAffine(image, mat, (512, 512))
+    else:
+        dst = image
 
     if image.shape[2] != 4 or image[0, 0, 3] >= 255:
         if rembg_session is None:
