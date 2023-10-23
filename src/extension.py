@@ -6,6 +6,9 @@ import os
 extensions = []
 
 class Extension:
+    def add_argument_to_parser(self, parser):
+        pass
+
     def init(self, main_settings):
         pass
 

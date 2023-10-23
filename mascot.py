@@ -46,6 +46,7 @@ class MascotMainSettings:
     __forward_image = None
     __screen_size = None
     __mascot_chatgpt = None
+    __args = None
 
     __image_rembg_model_name = 'isnet-anime'
 
@@ -121,7 +122,18 @@ class MascotMainSettings:
     def mascot_chatgpt(self, mascot_chatgpt):
         self.__mascot_chatgpt = mascot_chatgpt
 
+    @property
+    def args(self):
+        return self.__args
+
+    @args.setter
+    def args(self, args):
+        self.__args = args
+
 if __name__ == "__main__":
+    for ext_dir_name in os.listdir('extensions'):
+        install.install_extensions(ext_dir_name)
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--http_host', default='0.0.0.0')
     parser.add_argument('--http_port', type=int, default=55007)
@@ -161,12 +173,12 @@ if __name__ == "__main__":
     parser.add_argument('--run_command_reload', action='store_true')
     parser.add_argument('--ngrok_auth_token')
     parser.add_argument('--show_qrcode', action='store_true')
+    for ext in extension.extensions:
+        ext.add_argument_to_parser(parser)
     args = parser.parse_args()
 
-    for ext_dir_name in os.listdir('extensions'):
-        install.install_extensions(ext_dir_name)
-
     main_settings = MascotMainSettings()
+    main_settings.args = args
     main_settings.set_image_path(args.image, args.skip_image_setting)
     main_settings.set_background_image_path(args.background_image)
 

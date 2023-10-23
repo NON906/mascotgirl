@@ -15,18 +15,26 @@ import image_setting
 
 global_loaded_json = None
 global_loaded_json_raw_txt = None
+global_url_is_added_args = False
 
 class SDTxt2ImgExtension(extension.Extension):
-    __url = 'http://127.0.0.1:7860'
+    _url = 'http://127.0.0.1:7860'
     _generate_prompt = None
     _main_settings = None
     _keywords_json = None
     _keywords_json_raw_txt = None
 
+    def add_argument_to_parser(self, parser):
+        global global_url_is_added_args
+        if not global_url_is_added_args:
+            parser.add_argument('--sd_url', default='http://127.0.0.1:7860')
+            global_url_is_added_args = True
+
     def init(self, main_settings):
         global global_loaded_json
         global global_loaded_json_raw_txt
         self._main_settings = main_settings
+        self._url = main_settings.args.sd_url
         if global_loaded_json is None:
             json_path = os.path.join(os.path.dirname(__file__), 'settings.json')
             with open(json_path, 'r') as f:
@@ -101,7 +109,7 @@ class SDTxt2ImgExtension(extension.Extension):
                     loaded_json['negative_prompt'] += ', '
                 loaded_json['negative_prompt'] += add_negative
 
-        request_result = requests.post(self.__url + '/sdapi/v1/txt2img', data=json.dumps(loaded_json))
+        request_result = requests.post(self._url + '/sdapi/v1/txt2img', data=json.dumps(loaded_json))
         return request_result.json()
 
 class PictureExtension(SDTxt2ImgExtension):
@@ -256,7 +264,12 @@ There is no memory function, so please carry over the prompts from past conversa
             with open(keywords_path, 'w') as f:
                 f.write(value)
         else:
-            self.__loaded_json[name] = value
+            if value == 'True':
+                self.__loaded_json[name] = True
+            elif value == 'False':
+                self.__loaded_json[name] = False
+            else:
+                self.__loaded_json[name] = value
             json_path = os.path.join(os.path.dirname(__file__), 'picture_settings.json')
             with open(json_path, 'w') as f:
                 json.dump(self.__loaded_json, f)
@@ -268,6 +281,21 @@ class CharacterAndBackgroundExtension(SDTxt2ImgExtension):
     __is_generate = False
     __loaded_json = None
     __new_chara_image = None
+    __face_image_base64 = None
+    __use_controlnet = False
+
+    def check_controlnet(self):
+        self.__use_controlnet = False
+        try:
+            request_result = requests.get(self._url + '/sdapi/v1/scripts')
+            if 'controlnet' in request_result.json()['txt2img']:
+                request_result = requests.get(self._url + '/controlnet/model_list')
+                for full_name in request_result.json()['model_list']:
+                    if 'openpose' in full_name:
+                        self.__use_controlnet = True
+                        break
+        except:
+            pass
 
     def init(self, main_settings):
         super().init(main_settings)
@@ -279,7 +307,10 @@ class CharacterAndBackgroundExtension(SDTxt2ImgExtension):
             self.__loaded_json = {
                 'character_enabled': True,
                 'background_enabled': True,
+                'use_controlnet': True,
             }
+
+        self.check_controlnet()
 
     def get_chatgpt_functions(self):
         if not self.__loaded_json['character_enabled'] and not self.__loaded_json['background_enabled']:
@@ -338,41 +369,50 @@ The following are included from the beginning:
 
     def thread_func(self):
         global global_loaded_json
-        def read_image():
-            with open(os.path.join(os.path.dirname(__file__), 'openpose_face.png'), 'rb') as f:
-                file_bytes = f.read()
-            encoded_image = base64.b64encode(file_bytes).decode('utf-8')
-            return encoded_image
 
         if self.__character_prompt is not None:
             self._generate_prompt = self.__character_prompt
-            result_json = self.txt2img_thread_func({
-                'width': 512,
-                'height': 512,
-                'prompt': 'solo, standing, simple background, no background, solid color background, looking at viewer, open mouth, from front, ' + global_loaded_json['prompt'],
-                'alwayson_scripts': {
-                    "controlnet": {
-                        "args": [
-                            {
-                                "enabled": True,
-                                "module": "none",
-                                "model": "openpose",
-                                "weight": 1.0,
-                                "image": read_image(),
-                                "resize_mode": 1,
-                                "lowvram": False,
-                                "guidance_start": 0.0,
-                                "guidance_end": 1.0,
-                                "control_mode": 0,
-                                "pixel_perfect": False
-                            }
-                        ]
+            if self.__use_controlnet and ((not 'use_controlnet' in self.__loaded_json) or self.__loaded_json['use_controlnet']):
+                if self.__face_image_base64 is None:
+                    with open(os.path.join(os.path.dirname(__file__), 'openpose_face.png'), 'rb') as f:
+                        file_bytes = f.read()
+                    self.__face_image_base64 = base64.b64encode(file_bytes).decode('utf-8')
+                result_json = self.txt2img_thread_func({
+                    'width': 512,
+                    'height': 512,
+                    'prompt': 'solo, standing, simple background, no background, solid color background, looking at viewer, open mouth, from front, ' + global_loaded_json['prompt'],
+                    'alwayson_scripts': {
+                        "controlnet": {
+                            "args": [
+                                {
+                                    "enabled": True,
+                                    "module": "none",
+                                    "model": "openpose",
+                                    "weight": 1.0,
+                                    "image": self.__face_image_base64,
+                                    "resize_mode": 1,
+                                    "lowvram": False,
+                                    "guidance_start": 0.0,
+                                    "guidance_end": 1.0,
+                                    "control_mode": 0,
+                                    "pixel_perfect": False
+                                }
+                            ]
+                        }
                     }
-                }
-            })
-            image = cv2.imdecode(numpy.frombuffer(base64.b64decode(result_json['images'][0]), dtype=numpy.uint8), -1)
-            image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
-            self.__new_chara_image = image_setting.image_setting(image, skip_reshape=True)
+                })
+                image = cv2.imdecode(numpy.frombuffer(base64.b64decode(result_json['images'][0]), dtype=numpy.uint8), -1)
+                image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
+                self.__new_chara_image = image_setting.image_setting(image, skip_reshape=True)
+            else:
+                result_json = self.txt2img_thread_func({
+                    'width': 512,
+                    'height': 1024,
+                    'prompt': 'solo, standing, simple background, no background, solid color background, looking at viewer, open mouth, from front, full body standing, ' + global_loaded_json['prompt'],
+                })
+                image = cv2.imdecode(numpy.frombuffer(base64.b64decode(result_json['images'][0]), dtype=numpy.uint8), -1)
+                image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
+                self.__new_chara_image = image_setting.image_setting(image)
         else:
             self.__new_chara_image = None
         if self.__background_prompt is not None:
@@ -429,7 +469,7 @@ The following are included from the beginning:
         self.__is_generate = False
 
     def get_settings(self):
-        return [
+        ret = [
             {
                 'type': 'Label',
                 'text': '画像生成（キャラクター・背景）',
@@ -447,9 +487,24 @@ The following are included from the beginning:
                 'value': str(self.__loaded_json['background_enabled']),
             },
         ]
+        if self.__use_controlnet:
+            ret += [
+                {
+                    'type': 'Toggle',
+                    'name': 'use_controlnet',
+                    'text': 'キャラクター生成時にcontrolnet(openpose)を使用するか',
+                    'value': str(self.__loaded_json['use_controlnet']),
+                },
+            ]
+        return ret
 
     def set_setting(self, name, value):
-        self.__loaded_json[name] = value
+        if value == 'True':
+            self.__loaded_json[name] = True
+        elif value == 'False':
+            self.__loaded_json[name] = False
+        else:
+            self.__loaded_json[name] = value
         json_path = os.path.join(os.path.dirname(__file__), 'chara_and_back_settings.json')
         with open(json_path, 'w') as f:
             json.dump(self.__loaded_json, f)
