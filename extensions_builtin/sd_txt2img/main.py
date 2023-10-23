@@ -9,6 +9,7 @@ import copy
 import cv2
 import numpy
 import base64
+import subprocess
 
 from src import extension
 import image_setting
@@ -16,6 +17,7 @@ import image_setting
 global_loaded_json = None
 global_loaded_json_raw_txt = None
 global_url_is_added_args = False
+global_launch_sd = False
 
 class SDTxt2ImgExtension(extension.Extension):
     _url = 'http://127.0.0.1:7860'
@@ -28,11 +30,13 @@ class SDTxt2ImgExtension(extension.Extension):
         global global_url_is_added_args
         if not global_url_is_added_args:
             parser.add_argument('--sd_url', default='http://127.0.0.1:7860')
+            parser.add_argument('--sd_path')
             global_url_is_added_args = True
 
     def init(self, main_settings):
         global global_loaded_json
         global global_loaded_json_raw_txt
+        global global_launch_sd
         self._main_settings = main_settings
         self._url = main_settings.args.sd_url
         if global_loaded_json is None:
@@ -46,6 +50,22 @@ class SDTxt2ImgExtension(extension.Extension):
                 with open(keywords_path, 'r') as f:
                     self._keywords_json_raw_txt = f.read()
                     self._keywords_json = json.loads(self._keywords_json_raw_txt)
+        if not global_launch_sd and main_settings.args.sd_path is not None:
+            run_path = os.path.join(main_settings.current_path, main_settings.args.sd_path)
+            command = []
+            if os.path.basename(run_path) == 'run.bat':
+                command += ['cd', os.path.dirname(run_path), '&&', 'call', 'environment.bat', '&&', 'cd', os.path.join(os.path.dirname(run_path), 'webui'), '&&']
+            else:
+                command += ['cd', os.path.dirname(run_path), '&&']
+            with open(os.path.join(os.path.dirname(run_path), 'webui', 'config.json'), 'r') as f:
+                config_json = json.load(f)
+            config_json['auto_launch_browser'] = 'Disable'
+            with open(os.path.join(os.path.dirname(__file__), 'config.json'), 'w') as f:
+                json.dump(config_json, f)
+            command += ['set', 'COMMANDLINE_ARGS=--api', '--ui-settings-file', os.path.join(os.path.dirname(__file__), 'config.json').replace('\\', '\\\\'), '&&']
+            command += ['call', 'webui.bat']
+            subprocess.Popen(command, shell=True)
+            global_launch_sd = True
 
     def txt2img_thread_func(self, override_settings={}):
         def get_add_keywords(prompt, keywords):
@@ -285,17 +305,17 @@ class CharacterAndBackgroundExtension(SDTxt2ImgExtension):
     __use_controlnet = False
 
     def check_controlnet(self):
-        self.__use_controlnet = False
-        try:
-            request_result = requests.get(self._url + '/sdapi/v1/scripts')
-            if 'controlnet' in request_result.json()['txt2img']:
-                request_result = requests.get(self._url + '/controlnet/model_list')
-                for full_name in request_result.json()['model_list']:
-                    if 'openpose' in full_name:
-                        self.__use_controlnet = True
-                        break
-        except:
-            pass
+        if not self.__use_controlnet:
+            try:
+                request_result = requests.get(self._url + '/sdapi/v1/scripts')
+                if 'controlnet' in request_result.json()['txt2img']:
+                    request_result = requests.get(self._url + '/controlnet/model_list')
+                    for full_name in request_result.json()['model_list']:
+                        if 'openpose' in full_name:
+                            self.__use_controlnet = True
+                            break
+            except:
+                pass
 
     def init(self, main_settings):
         super().init(main_settings)
@@ -372,6 +392,7 @@ The following are included from the beginning:
 
         if self.__character_prompt is not None:
             self._generate_prompt = self.__character_prompt
+            self.check_controlnet()
             if self.__use_controlnet and ((not 'use_controlnet' in self.__loaded_json) or self.__loaded_json['use_controlnet']):
                 if self.__face_image_base64 is None:
                     with open(os.path.join(os.path.dirname(__file__), 'openpose_face.png'), 'rb') as f:
@@ -487,6 +508,7 @@ The following are included from the beginning:
                 'value': str(self.__loaded_json['background_enabled']),
             },
         ]
+        self.check_controlnet()
         if self.__use_controlnet:
             ret += [
                 {

@@ -47,12 +47,14 @@ class MascotMainSettings:
     __screen_size = None
     __mascot_chatgpt = None
     __args = None
+    __current_path = None
 
     __image_rembg_model_name = 'isnet-anime'
 
     def __init__(self, image_mode='standard_float', image_rembg_model_name='isnet-anime'):
         self.__mascot_image = MascotImage(mode=image_mode)
         self.__image_rembg_model_name = image_rembg_model_name
+        self.__current_path = os.getcwd()
 
     @property
     def mascot_image(self):
@@ -129,6 +131,14 @@ class MascotMainSettings:
     @args.setter
     def args(self, args):
         self.__args = args
+
+    @property
+    def current_path(self):
+        return self.__current_path
+
+    @current_path.setter
+    def current_path(self, current_path):
+        self.__current_path = current_path
 
 if __name__ == "__main__":
     for ext_dir_name in os.listdir('extensions'):
