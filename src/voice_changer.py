@@ -60,7 +60,6 @@ class VoiceChangerRVC:
                 },
                 "indexFile": os.path.basename(index_file),
                 "defaultTune": trans,
-                "embedder": "hubert_base",
                 "sampleId": 'mascotgirl', 
             },
             'files': [
@@ -74,7 +73,7 @@ class VoiceChangerRVC:
         if onnx_model_file is not None:
             params_data['params']['modelFile'] = os.path.basename(onnx_model_file)
             params_data['params']['isONNX'] = True
-            params_data['params']['modelType'] = 'onnxRVC'
+            #params_data['params']['modelType'] = 'onnxRVC'
             params_data['files'] += [{
                 'name': os.path.basename(onnx_model_file),
                 'kind': 'rvcModel',
@@ -83,7 +82,7 @@ class VoiceChangerRVC:
         else:
             params_data['params']['modelFile'] = os.path.basename(pytorch_model_file)
             params_data['params']['isONNX'] = False
-            params_data['params']['modelType'] = 'pyTorchRVC'
+            #params_data['params']['modelType'] = 'pyTorchRVC'
             params_data['files'] += [{
                 'name': os.path.basename(pytorch_model_file),
                 'kind': 'rvcModel',

@@ -415,7 +415,7 @@ The following are included from the beginning:
                                     "lowvram": False,
                                     "guidance_start": 0.0,
                                     "guidance_end": 1.0,
-                                    "control_mode": 0,
+                                    "control_mode": 1,
                                     "pixel_perfect": False
                                 }
                             ]
