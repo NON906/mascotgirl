@@ -32,7 +32,7 @@ if NOT EXIST "%~dp0.installed\.git" (
 call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
 
 if NOT EXIST "%~dp0.installed\.others" (
-    pip install openai py7zr opencv-python rembg fastapi uvicorn pyngrok qrcode
+    pip install openai==0.28.1 py7zr opencv-python rembg fastapi uvicorn pyngrok qrcode
     echo f >> "%~dp0.installed\.others"
 )
 
