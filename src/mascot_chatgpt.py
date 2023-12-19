@@ -88,6 +88,9 @@ Change voice style (Either ''' + style_names_str + ''').
         '''
         self.chatgpt_messages.append({"role": "system", "content": chatgpt_setting_content})
 
+    def change_setting_from_str(self, chatgpt_setting_str):
+        self.chatgpt_messages[0] = {"role": "system", "content": chatgpt_setting_str}
+
     def write_log(self):
         if self.log_file_name is None:
             return        
@@ -129,7 +132,6 @@ Change voice style (Either ''' + style_names_str + ''').
                 stream=True,
                 functions=all_funcs
             )
-            self.unlock()
             is_func = False
             func_name = None
             for chunk in self.chatgpt_response:
@@ -160,33 +162,30 @@ Change voice style (Either ''' + style_names_str + ''').
                     self.recieved_message += chunk.choices[0].delta.get('content', '')
                     for ext in extension.extensions:
                         ext.recv_message_streaming(self.chatgpt_messages, self.recieved_message)
+            recieved_states_data = self.recieved_states_data
+            self.unlock()
             resend_flag = False
             if is_func:
                 message = ''
                 for ext in extension.extensions:
-                    resend_or_message = ext.recv_function(self.chatgpt_messages, func_name, self.recieved_states_data)
+                    resend_or_message = ext.recv_function(self.chatgpt_messages, func_name, recieved_states_data)
                     if type(resend_or_message) is str:
                         if message != '':
                             message += '\n'
                         message += resend_or_message
                     elif resend_or_message is not None:
                         resend_flag = True
-                if not resend_flag:
-                    self.chatgpt_messages.append({"role": "assistant", "content": message})
-                    for ext in extension.extensions:
-                        ext.recv_message(message)
-                    if write_log:
-                        self.write_log()
+                self.recieved_message = message
+            if resend_flag:
+                self.chatgpt_messages = self.chatgpt_messages[:-1]
+                self.send_to_chatgpt(content, write_log)
             else:
                 self.chatgpt_messages.append({"role": "assistant", "content": self.recieved_message})
                 for ext in extension.extensions:
                     ext.recv_message(self.chatgpt_messages)
                 if write_log:
                     self.write_log()
-            self.chatgpt_response = None
-            if resend_flag:
-                self.chatgpt_messages = self.chatgpt_messages[:-1]
-                self.send_to_chatgpt(content, write_log)
+                self.chatgpt_response = None
 
         self.chatgpt_response = []
         recv_thread = threading.Thread(target=recv)
@@ -195,17 +194,19 @@ Change voice style (Either ''' + style_names_str + ''').
         return True
 
     def get_states(self):
+        is_finished = self.chatgpt_response is None
+        recieved_states_data = self.recieved_states_data
         voice_style = None
         eyebrow = None
         eyes = None
-        if self.recieved_states_data is not None:
-            if 'voice_style' in self.recieved_states_data:
-                voice_style = self.recieved_states_data['voice_style']
-            if 'eyebrow' in self.recieved_states_data:
-                eyebrow = self.recieved_states_data['eyebrow']
-            if 'eyes' in self.recieved_states_data:
-                eyes = self.recieved_states_data['eyes']
-        return self.chatgpt_response is None, voice_style, eyebrow, eyes
+        if recieved_states_data is not None:
+            if 'voice_style' in recieved_states_data:
+                voice_style = recieved_states_data['voice_style']
+            if 'eyebrow' in recieved_states_data:
+                eyebrow = recieved_states_data['eyebrow']
+            if 'eyes' in recieved_states_data:
+                eyes = recieved_states_data['eyes']
+        return is_finished, voice_style, eyebrow, eyes
 
     def get_message(self):
         return self.chatgpt_response is None, self.recieved_message

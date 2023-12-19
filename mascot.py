@@ -371,6 +371,11 @@ if __name__ == "__main__":
 
         recv_start_time = 0.0
 
+        recv_mouth_queries = mouth_queries
+        recv_time_length = time_length
+        recv_response_message = response_message
+        recv_is_finished = False
+
         while not is_finished:
             is_start = len(mouth_queries) == 0
 
@@ -393,13 +398,6 @@ if __name__ == "__main__":
                 else:
                     response_message = response_message[:-len(messages[-1])]
                     messages = messages[:-1]
-
-            if len(messages) <= 0:
-                recv_mouth_queries = mouth_queries
-                recv_time_length = time_length
-                recv_response_message = response_message
-                recv_is_finished = is_finished
-                continue
 
             for mes in messages:
                 vc_input = b''
