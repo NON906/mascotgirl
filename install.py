@@ -32,7 +32,37 @@ if __name__ == "__main__":
         wget('https://www.dropbox.com/s/qmq1dnxrmzsxb4h/two_algo_face_body_rotator.pt?dl=0', 'mascotgirl/talking_head_anime_3_demo/data/models/standard_float/two_algo_face_body_rotator.pt')
         make_empty_file('.installed/.tha3')
 
-    while not os.path.isfile('.installed/.voicevox'):
+    voicevox_select = -1
+    while voicevox_select != 1 and voicevox_select != 2 and (not os.path.isfile('.installed/.voicevox') or not os.path.isfile('.installed/.voicevox_nemo')):
+        select = input('どちらのVOICEVOXをインストールしますか？\n [1. VOICEVOX NEMO / 2. VOICEVOX(通常版)] (1): ')
+        if select is None or select == '' or int(select) == 1:
+            voicevox_select = 1
+        elif int(select) == 2:
+            voicevox_select = 2
+
+    while not os.path.isfile('.installed/.voicevox_nemo') and voicevox_select == 1:
+        select = input('どのバージョンのVOICEVOX NEMOをインストールしますか？ [CPU/CUDA/DirectML] (CUDA): ')
+        is_selected = True
+        if select is None or select == '' or select == 'CUDA':
+            wget('https://github.com/VOICEVOX/voicevox_nemo_engine/releases/download/0.14.0/voicevox_engine-windows-nvidia-0.14.0.7z.001', 'voicevox_engine-windows.7z.001')
+        elif select == 'CPU':
+            wget('https://github.com/VOICEVOX/voicevox_nemo_engine/releases/download/0.14.0/voicevox_engine-windows-cpu-0.14.0.7z.001', 'voicevox_engine-windows.7z.001')
+        elif select == 'DirectML':
+            wget('https://github.com/VOICEVOX/voicevox_nemo_engine/releases/download/0.14.0/voicevox_engine-windows-directml-0.14.0.7z.001', 'voicevox_engine-windows.7z.001')
+        else:
+            continue
+        with py7zr.SevenZipFile('voicevox_engine-windows.7z.001', mode='r') as archive:
+            archive.extractall(path='bin/voicevox_tmp')
+        for f in os.listdir('bin/voicevox_tmp'):
+            sub_dir = os.path.join('bin/voicevox_tmp', f)  
+            if os.path.isdir(sub_dir):
+                break
+        shutil.move(sub_dir, 'bin/voicevox_nemo')
+        make_empty_file('.installed/.voicevox_nemo')
+        os.rmdir('bin/voicevox_tmp')
+        os.remove('voicevox_engine-windows.7z.001')
+
+    while not os.path.isfile('.installed/.voicevox') and voicevox_select == 2:
         select = input('どのバージョンのVOICEVOXをインストールしますか？ [CPU/CUDA/DirectML] (CUDA): ')
         is_selected = True
         if select is None or select == '' or select == 'CUDA':
@@ -74,6 +104,7 @@ if __name__ == "__main__":
         else:
             continue
 
+    _ = """
     os.chdir('mascotgirl')
     for dir_name in os.listdir('extensions_builtin'):
         dir_path = os.path.join('extensions_builtin', dir_name)
@@ -83,3 +114,4 @@ if __name__ == "__main__":
                 shutil.copytree(dir_path, os.path.join('extensions', dir_name))
                 install_extensions(dir_name)
     os.chdir('..')
+    """

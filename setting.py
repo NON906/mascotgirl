@@ -12,13 +12,14 @@ set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Li
 call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
 cd mascotgirl
 python mascot.py ^
-    --voicevox_path "..\bin\voicevox\run.exe" ^
     --voice_changer_path "..\bin\MMVCServerSIO\start_http.bat" ^
     --image "__CHARA_IMAGE__" ^
     --background_image "__BACKGROUND_IMAGE__" ^
     --chatgpt_setting "__CHARA_SETTING__" ^
     --chatgpt_apikey "__CHATGPT_APIKEY__" ^
     --chatgpt_model_name "__CHATGPT_MODEL_NAME__" ^
+    --voicevox_path "__VOICEVOX_PATH__" ^
+    --voicevox_url "__VOICEVOX_URL__" ^
     --voicevox_speaker_name "__VOICEVOX_SPEAKER_NAME__" ^
     --voicevox_intonation_scale __VOICEVOX_INTONATION_SCALE__ ^
     __RVC_PYTORCH_MODEL_FILE_OPT__ ^
@@ -40,13 +41,14 @@ set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Li
 call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
 cd mascotgirl
 python mascot.py ^
-    --voicevox_path "..\bin\voicevox\run.exe" ^
     --voice_changer_path "..\bin\MMVCServerSIO\start_http.bat" ^
     --image "__CHARA_IMAGE__" ^
     --background_image "__BACKGROUND_IMAGE__" ^
     --chatgpt_setting "__CHARA_SETTING__" ^
     --chatgpt_apikey "__CHATGPT_APIKEY__" ^
     --chatgpt_model_name "__CHATGPT_MODEL_NAME__" ^
+    --voicevox_path "__VOICEVOX_PATH__" ^
+    --voicevox_url "__VOICEVOX_URL__" ^
     --voicevox_speaker_name "__VOICEVOX_SPEAKER_NAME__" ^
     --voicevox_intonation_scale __VOICEVOX_INTONATION_SCALE__ ^
     __RVC_PYTORCH_MODEL_FILE_OPT__ ^
@@ -114,10 +116,20 @@ endlocal
         select = 'gpt-3.5-turbo'
     replace('__CHATGPT_MODEL_NAME__', select)
 
-    select = input('VOICEVOXのキャラクター名を入力してください (春日部つむぎ): \n')
-    if select is None or select == '':
-        select = '春日部つむぎ'
-    replace('__VOICEVOX_SPEAKER_NAME__', select)
+    if os.path.isfile('.installed/.voicevox_nemo'):
+        select = input('VOICEVOXのキャラクター名を入力してください (女声2): \n')
+        if select is None or select == '':
+            select = '女声2'
+        replace('__VOICEVOX_SPEAKER_NAME__', select)
+        replace('__VOICEVOX_PATH__', '..\\bin\\voicevox_nemo\\run.exe')
+        replace('__VOICEVOX_URL__', 'http://localhost:50121')
+    else:
+        select = input('VOICEVOXのキャラクター名を入力してください (春日部つむぎ): \n')
+        if select is None or select == '':
+            select = '春日部つむぎ'
+        replace('__VOICEVOX_SPEAKER_NAME__', select)
+        replace('__VOICEVOX_PATH__', '..\\bin\\voicevox\\run.exe')
+        replace('__VOICEVOX_URL__', 'http://localhost:50021')
 
     select = 'dummy'
     while not is_num(select):
