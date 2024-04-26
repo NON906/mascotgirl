@@ -13,18 +13,10 @@ call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
 cd mascotgirl
 python mascot.py ^
     --voice_changer_path "..\bin\MMVCServerSIO\start_http.bat" ^
-    --image "__CHARA_IMAGE__" ^
-    --background_image "__BACKGROUND_IMAGE__" ^
-    --chatgpt_setting "__CHARA_SETTING__" ^
     --chatgpt_apikey "__CHATGPT_APIKEY__" ^
     --chatgpt_model_name "__CHATGPT_MODEL_NAME__" ^
     --voicevox_path "__VOICEVOX_PATH__" ^
     --voicevox_url "__VOICEVOX_URL__" ^
-    --voicevox_speaker_name "__VOICEVOX_SPEAKER_NAME__" ^
-    --voicevox_intonation_scale __VOICEVOX_INTONATION_SCALE__ ^
-    __RVC_PYTORCH_MODEL_FILE_OPT__ ^
-    --rvc_index_file "__RVC_INDEX_FILE__" ^
-    --rvc_model_trans __RVC_MODEL_TRANS__ ^
     --chatgpt_log "chatgpt.json" ^
     --chatgpt_log_replace ^
     --image_pipe_name "\\.\pipe\mascot_image_pipe" ^
@@ -42,18 +34,10 @@ call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
 cd mascotgirl
 python mascot.py ^
     --voice_changer_path "..\bin\MMVCServerSIO\start_http.bat" ^
-    --image "__CHARA_IMAGE__" ^
-    --background_image "__BACKGROUND_IMAGE__" ^
-    --chatgpt_setting "__CHARA_SETTING__" ^
     --chatgpt_apikey "__CHATGPT_APIKEY__" ^
     --chatgpt_model_name "__CHATGPT_MODEL_NAME__" ^
     --voicevox_path "__VOICEVOX_PATH__" ^
     --voicevox_url "__VOICEVOX_URL__" ^
-    --voicevox_speaker_name "__VOICEVOX_SPEAKER_NAME__" ^
-    --voicevox_intonation_scale __VOICEVOX_INTONATION_SCALE__ ^
-    __RVC_PYTORCH_MODEL_FILE_OPT__ ^
-    --rvc_index_file "__RVC_INDEX_FILE__" ^
-    --rvc_model_trans __RVC_MODEL_TRANS__ ^
     --ngrok_auth_token "__NGROK_AUTH_TOKEN__" ^
     --show_qrcode ^
     --chatgpt_log "chatgpt.json" ^
@@ -62,6 +46,18 @@ python mascot.py ^
     --framerate 30 ^
     --run_command_reload ^
     --run_command "ffmpeg\ffmpeg -y -f rawvideo -pix_fmt rgba -s 512x512 -framerate 30 -thread_queue_size 8192 -i \\.\pipe\mascot_image_pipe -f s16le -ar 48000 -ac 1 -thread_queue_size 8192 -i \\.\pipe\mascot_pipe -auto-alt-ref 0 -deadline realtime -quality realtime -cpu-used 4 -row-mt 1 -crf 30 -b:v 0 -pass 1 -c:v libvpx-vp9 -c:a libopus -f matroska tcp://0.0.0.0:55009/stream?listen"
+cd ..
+call %~dp0bin\Miniconda3\condabin\conda deactivate
+endlocal
+    '''
+
+    setting_chara_bat_content = r'''
+@echo off
+setlocal
+set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts;%PATH%
+call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
+cd mascotgirl
+python setting_chara.py
 cd ..
 call %~dp0bin\Miniconda3\condabin\conda deactivate
 endlocal
@@ -91,21 +87,6 @@ endlocal
         else:
             return True
 
-    select = input('キャラクターの画像ファイルのパスを入力してください (chara/chara_image.png): \n')
-    if select is None or select == '':
-        select = 'chara/chara_image.png'
-    replace('__CHARA_IMAGE__', select)
-
-    select = input('背景の画像ファイルのパスを入力してください (chara/background.png): \n')
-    if select is None or select == '':
-        select = 'chara/background.png'
-    replace('__BACKGROUND_IMAGE__', select)
-    
-    select = input('キャラクター設定のテキストファイルのパスを入力してください (chara/chara_setting.txt): \n')
-    if select is None or select == '':
-        select = 'chara/chara_setting.txt'
-    replace('__CHARA_SETTING__', select)
-
     select = ''
     while select is None or select == '':
         select = input('ChatGPTのAPIキーを入力してください（必須）: \n')
@@ -117,56 +98,11 @@ endlocal
     replace('__CHATGPT_MODEL_NAME__', select)
 
     if os.path.isfile('.installed/.voicevox_nemo'):
-        select = input('VOICEVOXのキャラクター名を入力してください (女声2): \n')
-        if select is None or select == '':
-            select = '女声2'
-        replace('__VOICEVOX_SPEAKER_NAME__', select)
         replace('__VOICEVOX_PATH__', '..\\bin\\voicevox_nemo\\run.exe')
         replace('__VOICEVOX_URL__', 'http://localhost:50121')
     else:
-        select = input('VOICEVOXのキャラクター名を入力してください (春日部つむぎ): \n')
-        if select is None or select == '':
-            select = '春日部つむぎ'
-        replace('__VOICEVOX_SPEAKER_NAME__', select)
         replace('__VOICEVOX_PATH__', '..\\bin\\voicevox\\run.exe')
         replace('__VOICEVOX_URL__', 'http://localhost:50021')
-
-    select = 'dummy'
-    while not is_num(select):
-        select = input('VOICEVOXの抑揚（0.0～2.0くらい）を入力してください (1.0): \n')
-        if select is None or select == '':
-            select = '1.0'
-    replace('__VOICEVOX_INTONATION_SCALE__', select)
-
-    select_pth = ''
-    select_index = ''
-    select_scale = '0'
-    if os.path.isfile('.installed/.vc'):
-        loop_flag = True
-        while loop_flag:
-            loop_flag = False
-            select_pth = input('RVCのmodelファイル(*.pthまたは*.onnx)のパスを入力してください（空白でスキップ）: \n')
-            if select_pth is not None and select_pth != '':
-                _, ext = os.path.splitext(select_pth)
-                if ext == '.pth':
-                    select_pth = '--rvc_pytorch_model_file "' + select_pth + '"'
-                elif ext == '.onnx':
-                    select_pth = '--rvc_onnx_model_file "' + select_pth + '"'
-                else:
-                    loop_flag = True
-                    continue
-                select_index = input('RVCのindexファイル(*.index)のパスを入力してください（空白でスキップ）: \n')
-                if select_index is not None and select_index != '':
-                    select_scale = 'dummy'
-                    while not is_int_num(select_scale):
-                        select_scale = input('RVCの音高（-20～20くらい）を入力してください (0): \n')
-                        if select_scale is None or select_scale == '':
-                            select_scale = '0'
-                else:
-                    select_pth = ''
-    replace('__RVC_PYTORCH_MODEL_FILE_OPT__', select_pth)
-    replace('__RVC_INDEX_FILE__', select_index)
-    replace('__RVC_MODEL_TRANS__', select_scale)
 
     while True:
         select = input('リモート接続機能(Androidなど)を使用しますか？ [y/N]: ')
@@ -188,3 +124,7 @@ endlocal
             run_share_bat_content.replace('\n', '\r\n')
         with open('run_share.bat', 'w', encoding='shift_jis') as open_file:
             open_file.write(run_share_bat_content)
+    if not '\r\n' in setting_chara_bat_content:
+        setting_chara_bat_content.replace('\n', '\r\n')
+    with open('setting_chara.bat', 'w', encoding='shift_jis') as open_file:
+        open_file.write(setting_chara_bat_content)

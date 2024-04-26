@@ -187,6 +187,22 @@ if __name__ == "__main__":
         ext.add_argument_to_parser(parser)
     args = parser.parse_args()
 
+    if args.image is None:
+        print('キャラクターを選択してください')
+        dir_path = os.path.join(os.path.dirname(__file__), 'charas')
+        chara_dir = [
+            f for f in os.listdir(dir_path) if os.path.isdir(os.path.join(dir_path, f)) and os.path.isfile(os.path.join(dir_path, f, 'setting.json'))
+        ]
+        for loop, chara_name in enumerate(chara_dir):
+            print(str(loop + 1) + ': ' + chara_name)
+        chara_id = int(input('> ')) - 1
+        with open(os.path.join(dir_path, chara_dir[chara_id], 'setting.json'), encoding='utf-8') as f:
+            chara_dict = json.load(f)
+        for k, v in chara_dict.items():
+            if k == 'image' or k == 'background_image' or k == 'chatgpt_setting' or k == 'rvc_pytorch_model_file' or k == 'rvc_onnx_model_file' or k == 'rvc_index_file':
+                v = os.path.join(dir_path, chara_dir[chara_id], v)
+            setattr(args, k, v)
+
     main_settings = MascotMainSettings()
     main_settings.args = args
     main_settings.set_image_path(args.image, args.skip_image_setting)
