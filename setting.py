@@ -12,6 +12,7 @@ set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Li
 call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
 cd mascotgirl
 python mascot.py ^
+    --select_chara ^
     --voice_changer_path "..\bin\MMVCServerSIO\start_http.bat" ^
     --chatgpt_apikey "__CHATGPT_APIKEY__" ^
     --chatgpt_model_name "__CHATGPT_MODEL_NAME__" ^
@@ -33,6 +34,7 @@ set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Li
 call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
 cd mascotgirl
 python mascot.py ^
+    --select_chara ^
     --voice_changer_path "..\bin\MMVCServerSIO\start_http.bat" ^
     --chatgpt_apikey "__CHATGPT_APIKEY__" ^
     --chatgpt_model_name "__CHATGPT_MODEL_NAME__" ^

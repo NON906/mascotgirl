@@ -145,6 +145,7 @@ if __name__ == "__main__":
         install.install_extensions(ext_dir_name)
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('--select_chara', action='store_true')
     parser.add_argument('--http_host', default='0.0.0.0')
     parser.add_argument('--http_port', type=int, default=55007)
     parser.add_argument('--http_log', default=os.devnull)
@@ -187,7 +188,7 @@ if __name__ == "__main__":
         ext.add_argument_to_parser(parser)
     args = parser.parse_args()
 
-    if args.image is None:
+    if args.select_chara:
         print('キャラクターを選択してください')
         dir_path = os.path.join(os.path.dirname(__file__), 'charas')
         chara_dir = [
