@@ -4,3 +4,6 @@
 [submodule "gpt-stream-json-parser"]
 	path = gpt-stream-json-parser
 	url = https://github.com/furnqse/gpt-stream-json-parser.git
+[submodule "Style-Bert-VITS2"]
+	path = Style-Bert-VITS2
+	url = https://github.com/litagin02/Style-Bert-VITS2.git

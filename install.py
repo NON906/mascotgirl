@@ -32,13 +32,14 @@ if __name__ == "__main__":
         wget('https://www.dropbox.com/s/qmq1dnxrmzsxb4h/two_algo_face_body_rotator.pt?dl=0', 'mascotgirl/talking_head_anime_3_demo/data/models/standard_float/two_algo_face_body_rotator.pt')
         make_empty_file('.installed/.tha3')
 
+    _ = """
     voicevox_select = -1
-    while voicevox_select != 1 and voicevox_select != 2 and (not os.path.isfile('.installed/.voicevox') or not os.path.isfile('.installed/.voicevox_nemo')):
-        select = input('どちらのVOICEVOXをインストールしますか？\n [1. VOICEVOX NEMO / 2. VOICEVOX(通常版)] (1): ')
-        if select is None or select == '' or int(select) == 1:
-            voicevox_select = 1
-        elif int(select) == 2:
-            voicevox_select = 2
+    while voicevox_select >= 0 and voicevox_select <= 2 and (not os.path.isfile('.installed/.voicevox') or not os.path.isfile('.installed/.voicevox_nemo')):
+        select = input('VOICEVOXをインストールしますか？\n [0. インストールしない / 1. VOICEVOX NEMO / 2. VOICEVOX(通常版)] (0): ')
+        if select is None or select == '' or int(select) == 0:
+            voicevox_select = 0
+        elif int(select) <= 2:
+            voicevox_select = int(select)
 
     while not os.path.isfile('.installed/.voicevox_nemo') and voicevox_select == 1:
         select = input('どのバージョンのVOICEVOX NEMOをインストールしますか？ [CPU/CUDA/DirectML] (CUDA): ')
@@ -103,6 +104,7 @@ if __name__ == "__main__":
             os.remove('MMVCServerSIO_win.zip')
         else:
             continue
+    """
 
     _ = """
     os.chdir('mascotgirl')

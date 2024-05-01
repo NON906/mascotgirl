@@ -2,8 +2,6 @@
   "image": "chara_image.png",
   "background_image": "background.png",
   "chatgpt_setting": "chara_setting.txt",
-  "voicevox_speaker_name": "女声2",
-  "voicevox_intonation_scale": 1.0,
-  "rvc_index_file": "",
-  "rvc_model_trans": 0
+  "bert_vits2_model": "jvnv-F1-jp",
+  "bert_vits2_model_file_name": "jvnv-F1-jp_e160_s14000.safetensors"
 }

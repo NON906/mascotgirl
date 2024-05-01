@@ -19,21 +19,25 @@ if NOT EXIST "%~dp0.installed\.wget" (
 
 set PATH=%~dp0bin\wget;%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts
 
-if NOT EXIST "%~dp0.installed\.git" (
+if NOT EXIST "%~dp0.installed\.git_1" (
     %~dp0bin\Miniconda3\condabin\conda install git -y
     git clone --depth 1 --recursive "https://github.com/NON906/mascotgirl.git"
-    cd "mascotgirl\talking_head_anime_3_demo"
+    cd "mascotgirl"
     %~dp0bin\Miniconda3\condabin\conda env create -n mascotgirl -f environment.yml
-    cd "..\.."
-    echo f >> "%~dp0.installed\.git"
+    cd ".."
+    echo f >> "%~dp0.installed\.git_1"
     install.bat
 )
 
 call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
 
-if NOT EXIST "%~dp0.installed\.others" (
-    pip install openai==0.28.1 py7zr opencv-python rembg fastapi uvicorn pyngrok qrcode
-    echo f >> "%~dp0.installed\.others"
+if NOT EXIST "%~dp0.installed\.style-bert-vits2" (
+    cd "mascotgirl\Style-Bert-VITS2"
+    python initialize.py
+    cd "..\.."
+    conda clean -y --all
+    echo f >> "%~dp0.installed\.style-bert-vits2"
+    install.bat
 )
 
 python "mascotgirl/install.py"

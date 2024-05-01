@@ -47,7 +47,7 @@ python mascot.py ^
     --image_pipe_name "\\.\pipe\mascot_image_pipe" ^
     --framerate 30 ^
     --run_command_reload ^
-    --run_command "ffmpeg\ffmpeg -y -f rawvideo -pix_fmt rgba -s 512x512 -framerate 30 -thread_queue_size 8192 -i \\.\pipe\mascot_image_pipe -f s16le -ar 48000 -ac 1 -thread_queue_size 8192 -i \\.\pipe\mascot_pipe -auto-alt-ref 0 -deadline realtime -quality realtime -cpu-used 4 -row-mt 1 -crf 30 -b:v 0 -pass 1 -c:v libvpx-vp9 -c:a libopus -f matroska tcp://0.0.0.0:55009/stream?listen"
+    --run_command "ffmpeg\ffmpeg -y -f rawvideo -pix_fmt rgba -s 512x512 -framerate 30 -thread_queue_size 8192 -i \\.\pipe\mascot_image_pipe -f s16le -ar __AUDIO_FREQ__ -ac 1 -thread_queue_size 8192 -i \\.\pipe\mascot_pipe -auto-alt-ref 0 -deadline realtime -quality realtime -cpu-used 4 -row-mt 1 -crf 30 -b:v 0 -pass 1 -c:v libvpx-vp9 -c:a libopus -f matroska tcp://0.0.0.0:55009/stream?listen"
 cd ..
 call %~dp0bin\Miniconda3\condabin\conda deactivate
 endlocal
@@ -102,9 +102,15 @@ endlocal
     if os.path.isfile('.installed/.voicevox_nemo'):
         replace('__VOICEVOX_PATH__', '..\\bin\\voicevox_nemo\\run.exe')
         replace('__VOICEVOX_URL__', 'http://localhost:50121')
-    else:
+        replace('__AUDIO_FREQ__', '48000')
+    elif os.path.isfile('.installed/.voicevox'):
         replace('__VOICEVOX_PATH__', '..\\bin\\voicevox\\run.exe')
         replace('__VOICEVOX_URL__', 'http://localhost:50021')
+        replace('__AUDIO_FREQ__', '48000')
+    else:
+        replace('__VOICEVOX_PATH__', '')
+        replace('__VOICEVOX_URL__', '')
+        replace('__AUDIO_FREQ__', '44100')
 
     while True:
         select = input('リモート接続機能(Androidなど)を使用しますか？ [y/N]: ')

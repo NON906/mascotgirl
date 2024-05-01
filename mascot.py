@@ -30,6 +30,7 @@ else:
     from src.named_pipe import NamedPipeUnix
 import wave
 import subprocess
+import shutil
 
 from src.mascot_image import MascotImage
 from src.animation_mouth import AnimationMouth
@@ -184,6 +185,9 @@ if __name__ == "__main__":
     parser.add_argument('--run_command_reload', action='store_true')
     parser.add_argument('--ngrok_auth_token')
     parser.add_argument('--show_qrcode', action='store_true')
+    parser.add_argument('--bert_vits2_model')
+    parser.add_argument('--bert_vits2_model_path')
+    parser.add_argument('--bert_vits2_model_file_name')
     for ext in extension.extensions:
         ext.add_argument_to_parser(parser)
     args = parser.parse_args()
@@ -200,7 +204,7 @@ if __name__ == "__main__":
         with open(os.path.join(dir_path, chara_dir[chara_id], 'setting.json'), encoding='utf-8') as f:
             chara_dict = json.load(f)
         for k, v in chara_dict.items():
-            if k == 'image' or k == 'background_image' or k == 'chatgpt_setting' or k == 'rvc_pytorch_model_file' or k == 'rvc_onnx_model_file' or k == 'rvc_index_file':
+            if k == 'image' or k == 'background_image' or k == 'chatgpt_setting' or k == 'rvc_pytorch_model_file' or k == 'rvc_onnx_model_file' or k == 'rvc_index_file' or k == 'bert_vits2_model_path':
                 v = os.path.join(dir_path, chara_dir[chara_id], v)
             setattr(args, k, v)
 
@@ -225,6 +229,10 @@ if __name__ == "__main__":
         args.rvc_pytorch_model_file = None
     if args.rvc_onnx_model_file == '':
         args.rvc_onnx_model_file = None
+    if args.voicevox_path == '':
+        args.voicevox_path = None
+    if args.voicevox_url == '':
+        args.voicevox_url = None
 
     current_path = os.getcwd()
     if args.voicevox_path is not None:
@@ -267,33 +275,46 @@ if __name__ == "__main__":
     style_names = []
     style_ids = []
     res = None
-    while res is None:
-        try:
-            res = requests.get(args.voicevox_url + '/speakers')
-        except requests.exceptions.ConnectionError:
-            res = None
-            if args.voicevox_path is None:
-                print("ERROR: VOICEVOX is not launch.", file=sys.stderr)
-                exit()
-    res_data = res.json()
-    for speaker in res_data:
-        if speaker['name'] == args.voicevox_speaker_name:
-            if args.voicevox_style_names is None:
-                for style in speaker['styles']:
-                    style_names.append(style['name'])
-                    style_ids.append(style['id'])
-            else:
-                style_args_list = args.voicevox_style_names.replace(' ', '').split(',')
-                for style_arg in style_args_list:
+    if args.voicevox_url is not None:
+        while res is None:
+            try:
+                res = requests.get(args.voicevox_url + '/speakers')
+            except requests.exceptions.ConnectionError:
+                res = None
+                if args.voicevox_path is None:
+                    print("ERROR: VOICEVOX is not launch.", file=sys.stderr)
+                    exit()
+        res_data = res.json()
+        for speaker in res_data:
+            if speaker['name'] == args.voicevox_speaker_name:
+                if args.voicevox_style_names is None:
                     for style in speaker['styles']:
-                        if style_arg == style['name']:
-                            style_names.append(style['name'])
-                            style_ids.append(style['id'])
-    #if args.voicevox_speaker_name == 'WhiteCUL':
-    #    style_names = ['normal', 'happy', 'sad', 'crying']
-    if len(style_ids) <= 0:
-        print("ERROR: Undefined speaker name.", file=sys.stderr)
-        exit()
+                        style_names.append(style['name'])
+                        style_ids.append(style['id'])
+                else:
+                    style_args_list = args.voicevox_style_names.replace(' ', '').split(',')
+                    for style_arg in style_args_list:
+                        for style in speaker['styles']:
+                            if style_arg == style['name']:
+                                style_names.append(style['name'])
+                                style_ids.append(style['id'])
+        #if args.voicevox_speaker_name == 'WhiteCUL':
+        #    style_names = ['normal', 'happy', 'sad', 'crying']
+        if len(style_ids) <= 0:
+            print("ERROR: Undefined speaker name.", file=sys.stderr)
+            exit()
+    else:
+        style_names = ['Neutral']
+        style_ids = ['Neutral']
+
+    audio_freq = 48000
+    if args.bert_vits2_model is not None:
+        if args.bert_vits2_model_path is not None:
+            shutil.copytree(args.bert_vits2_model_path, os.path.join('Style-Bert-VITS2', 'model_assets', args.bert_vits2_model))
+        os.chdir('Style-Bert-VITS2')
+        subprocess.Popen(['python', 'server_editor.py'])
+        os.chdir(current_path)
+        audio_freq = 44100
 
     mascot_chatgpt = None
     if args.chatgpt_apikey is not None:
@@ -416,47 +437,92 @@ if __name__ == "__main__":
                     response_message = response_message[:-len(messages[-1])]
                     messages = messages[:-1]
 
-            for mes in messages:
-                vc_input = b''
+            if args.bert_vits2_model is None:
+                for mes in messages:
+                    vc_input = b''
 
-                res1 = requests.post(args.voicevox_url + '/audio_query', params = {'text': mes, 'speaker': speaker_id})
-                res1_data = res1.json()
-                res1_data['prePhonemeLength'] = 0.02
-                res1_data['postPhonemeLength'] = 0.08
-                res1_data['outputSamplingRate'] = 48000
-                res1_data['pitchScale'] = args.voicevox_pitch_scale
-                res1_data['intonationScale'] = args.voicevox_intonation_scale
-                res2 = requests.post(args.voicevox_url + '/synthesis', params = {'speaker': speaker_id}, data=json.dumps(res1_data))
-                
-                file_in_memory = BytesIO(res2.content)
-                with wave.open(file_in_memory, 'rb') as wav_file:
-                    vc_input += wav_file.readframes(wav_file.getnframes())
+                    res1 = requests.post(args.voicevox_url + '/audio_query', params = {'text': mes, 'speaker': speaker_id})
+                    res1_data = res1.json()
+                    res1_data['prePhonemeLength'] = 0.02
+                    res1_data['postPhonemeLength'] = 0.08
+                    res1_data['outputSamplingRate'] = audio_freq
+                    res1_data['pitchScale'] = args.voicevox_pitch_scale
+                    res1_data['intonationScale'] = args.voicevox_intonation_scale
+                    res2 = requests.post(args.voicevox_url + '/synthesis', params = {'speaker': speaker_id}, data=json.dumps(res1_data))
+                    
+                    file_in_memory = BytesIO(res2.content)
+                    with wave.open(file_in_memory, 'rb') as wav_file:
+                        vc_input += wav_file.readframes(wav_file.getnframes())
 
-                if voice_changer is not None:
-                    vc_output = voice_changer.test(vc_input)
-                else:
-                    vc_output = vc_input
-                audio_pipe.add_bytes(vc_output)
+                    if voice_changer is not None:
+                        vc_output = voice_changer.test(vc_input)
+                    else:
+                        vc_output = vc_input
+                    audio_pipe.add_bytes(vc_output)
 
-                mouth_queries.append(res1_data)
+                    mouth_queries.append(res1_data)
 
-                if recv_start_time == 0.0:
-                    recv_start_time = time.perf_counter()
-                else:
-                    now_time = time.perf_counter() - recv_start_time
-                    if time_length < now_time:
-                        time_length = now_time
-                time_length += animation_mouth.set_audio_query(res1_data)
-                animation_eyes.set_morph(response_eyes, time_length, is_start)
+                    if recv_start_time == 0.0:
+                        recv_start_time = time.perf_counter()
+                    else:
+                        now_time = time.perf_counter() - recv_start_time
+                        if time_length < now_time:
+                            time_length = now_time
+                    time_length += animation_mouth.set_audio_query(res1_data)
+                    animation_eyes.set_morph(response_eyes, time_length, is_start)
 
-                if response_eyebrow == 'normal':
-                    mascot_image.set_eyebrow(0, 0.0, 0.0)
-                else:
-                    mascot_image.set_eyebrow(response_eyebrow, 1.0, 1.0)
+                    if response_eyebrow == 'normal':
+                        mascot_image.set_eyebrow(0, 0.0, 0.0)
+                    else:
+                        mascot_image.set_eyebrow(response_eyebrow, 1.0, 1.0)
 
-                recv_mouth_queries = mouth_queries
-                recv_time_length = time_length
-                recv_response_message = response_message[:len(recv_response_message) + len(mes)]
+                    recv_mouth_queries = mouth_queries
+                    recv_time_length = time_length
+                    recv_response_message = response_message[:len(recv_response_message) + len(mes)]
+            else:
+                for mes in messages:
+                    vc_output = b''
+                    g2p_res = requests.post('http://localhost:8000/api/g2p', data=json.dumps({'text': mes}))
+                    synth_data = {
+                        'model': args.bert_vits2_model,
+                        'modelFile': os.path.join('model_assets', args.bert_vits2_model, args.bert_vits2_model_file_name),
+                        'text': mes,
+                        'moraToneList': g2p_res.json(),
+                        'silenceAfter': 0.08
+                    }
+                    synth_res = requests.post('http://localhost:8000/api/synthesis', data=json.dumps(synth_data))
+
+                    file_in_memory = BytesIO(synth_res.content)
+                    with wave.open(file_in_memory, 'rb') as wav_file:
+                        vc_output += wav_file.readframes(wav_file.getnframes())
+
+                    audio_pipe.add_bytes(vc_output)
+
+                    mouth_queries.append([{
+                        'prePhonemeLength': 0.0
+                    },
+                    {
+                        'postPhonemeLength': synth_data['silenceAfter']
+                    }])
+
+                    if recv_start_time == 0.0:
+                        recv_start_time = time.perf_counter()
+                    else:
+                        now_time = time.perf_counter() - recv_start_time
+                        if time_length < now_time:
+                            time_length = now_time
+                    #time_length += animation_mouth.set_audio_query(res1_data)
+                    time_length += len(vc_output) / audio_freq
+                    animation_eyes.set_morph(response_eyes, time_length, is_start)
+
+                    if response_eyebrow == 'normal':
+                        mascot_image.set_eyebrow(0, 0.0, 0.0)
+                    else:
+                        mascot_image.set_eyebrow(response_eyebrow, 1.0, 1.0)
+
+                    recv_mouth_queries = mouth_queries
+                    recv_time_length = time_length
+                    recv_response_message = response_message[:len(recv_response_message) + len(mes)]
             
             recv_is_finished = is_finished
 
@@ -583,6 +649,10 @@ if __name__ == "__main__":
         return JSONResponse(content=json_compatible_item_data)
     http_router.add_api_route("/set_setting", http_set_setting, methods=["POST"])
 
+    def http_get_audio_freq():
+        return audio_freq
+    http_router.add_api_route("/get_audio_freq", http_get_audio_freq, methods=["GET"])
+
     stop_main_thread = False
 
     default_stdout = sys.stdout
@@ -650,9 +720,9 @@ if __name__ == "__main__":
                 prev_time = start_time
             try:
                 while not stop_main_thread:
-                    frame_size = int((time.perf_counter() - prev_time) * 48000)
+                    frame_size = int((time.perf_counter() - prev_time) * audio_freq)
                     frame_size = audio_pipe.write_audio_frame(frame_size)
-                    prev_time += frame_size / 48000
+                    prev_time += frame_size / audio_freq
                     time.sleep(0.0)
             except BrokenPipeError:
                 pass
