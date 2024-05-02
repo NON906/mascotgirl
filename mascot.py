@@ -315,6 +315,13 @@ if __name__ == "__main__":
         subprocess.Popen(['python', 'server_editor.py'])
         os.chdir(current_path)
         audio_freq = 44100
+        res = None
+        while res is None:
+            time.sleep(0.1)
+            try:
+                res = requests.get('http://localhost:8000/api/version')
+            except requests.exceptions.ConnectionError:
+                res = None
 
     mascot_chatgpt = None
     if args.chatgpt_apikey is not None:
@@ -498,12 +505,10 @@ if __name__ == "__main__":
 
                     audio_pipe.add_bytes(vc_output)
 
-                    mouth_queries.append([{
-                        'prePhonemeLength': 0.0
-                    },
-                    {
+                    mouth_queries.append({
+                        'prePhonemeLength': 0.0,
                         'postPhonemeLength': synth_data['silenceAfter']
-                    }])
+                    })
 
                     if recv_start_time == 0.0:
                         recv_start_time = time.perf_counter()
@@ -511,8 +516,7 @@ if __name__ == "__main__":
                         now_time = time.perf_counter() - recv_start_time
                         if time_length < now_time:
                             time_length = now_time
-                    #time_length += animation_mouth.set_audio_query(res1_data)
-                    time_length += len(vc_output) / audio_freq
+                    time_length += animation_mouth.set_by_mora_tone_list(synth_data['moraToneList'], vc_output, synth_data['silenceAfter'])
                     animation_eyes.set_morph(response_eyes, time_length, is_start)
 
                     if response_eyebrow == 'normal':
@@ -650,7 +654,11 @@ if __name__ == "__main__":
     http_router.add_api_route("/set_setting", http_set_setting, methods=["POST"])
 
     def http_get_audio_freq():
-        return audio_freq
+        json_compatible_item_data = jsonable_encoder({
+            'success': True,
+            'audio_freq': audio_freq,
+            })
+        return JSONResponse(content=json_compatible_item_data)
     http_router.add_api_route("/get_audio_freq", http_get_audio_freq, methods=["GET"])
 
     stop_main_thread = False

@@ -1,6 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import librosa
+import numpy as np
+
+import sys
+import os
+sys.path.append(os.getcwd() + "/Style-Bert-VITS2")
+from style_bert_vits2.nlp.japanese.mora_list import MORA_KATA_TO_MORA_PHONEMES
+
 class AnimationMouthQuery:
     index: int
     start_position: float
@@ -52,6 +60,56 @@ class AnimationMouth:
                 if mora['vowel'] is not None:
                     self.animation_length += mora['vowel_length'] * self.QUERY_TIME_SCALE
         self.animation_length += query['postPhonemeLength'] * self.QUERY_TIME_SCALE
+        return self.animation_length - self.play_position
+
+    def set_by_mora_tone_list(self, mora_tone_list_input, wav_data, silence_after):
+        if self.play_position > self.animation_length:
+            self.play_position = 0.0
+            self.animation_length = 0.0
+            self.queries = []
+        mora_tone_list = []
+        for mora_tone_input in mora_tone_list_input:
+            if mora_tone_input['mora'] in MORA_KATA_TO_MORA_PHONEMES.keys():
+                mora_tone_list.append(mora_tone_input)
+        y = np.frombuffer(wav_data, dtype=np.uint8)
+        y = y.view(np.int16).astype(np.float32) / 32768.0
+        length = y.shape[0] / 44100.0
+        dbs = librosa.feature.rms(y=y, frame_length=44100 * 4 // 120, hop_length=44100 // 120)[0]
+        #dbs = 20 * np.log10(dbs / 2e-5)
+        threshold = np.sort(dbs)[dbs.shape[0] - len(mora_tone_list)]
+        step_length = length / dbs.shape[0]
+        mora_index = 0
+        queries = []
+        for loop in range(dbs.shape[0]):
+            if dbs[loop] >= threshold:
+                for loop2 in range(loop + 1):
+                    if loop - loop2 - 1 < 0 or dbs[loop - loop2 - 1] > dbs[loop - loop2]:
+                        new_query = AnimationMouthQuery()
+                        new_query.start_position = (loop - loop2) * step_length + self.animation_length
+                        vowel = MORA_KATA_TO_MORA_PHONEMES[mora_tone_list[mora_index]['mora']][1]
+                        if vowel == 'a':
+                            new_query.index = 0
+                        elif vowel == 'i':
+                            new_query.index = 1
+                        elif vowel == 'u':
+                            new_query.index = 2
+                        elif vowel == 'e':
+                            new_query.index = 3
+                        elif vowel == 'o':
+                            new_query.index = 4
+                        else:
+                            new_query.index = -1
+                        queries.append(new_query)
+                        mora_index += 1
+                        break
+        for loop in range(len(queries) - 1):
+            queries[loop].end_position = queries[loop + 1].start_position
+            if queries[loop].index >= 0:
+                self.queries.append(queries[loop])
+        queries[len(queries) - 1].end_position = length - silence_after + self.animation_length
+        if queries[len(queries) - 1].index >= 0:
+            self.queries.append(queries[len(queries) - 1])
+        self.animation_length += length
         return self.animation_length - self.play_position
 
     def update(self, add_position):
