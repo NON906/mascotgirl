@@ -15,14 +15,17 @@ from langchain.callbacks.manager import AsyncCallbackManager
 from langchain.prompts import StringPromptTemplate, PromptTemplate
 from langchain.memory import ChatMessageHistory
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, BitsAndBytesConfig, StoppingCriteria, StoppingCriteriaList
-from huggingface_hub import snapshot_download
-from langchain_core.runnables.passthrough import RunnablePick
-from typing import Optional, List, Any
 from langchain.schema import (
     AIMessage,
     HumanMessage,
 )
+from langchain.callbacks.tracers import ConsoleCallbackHandler
+from langchain_community.llms import LlamaCpp
+from langchain_core.runnables.passthrough import RunnablePick
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, BitsAndBytesConfig, StoppingCriteria, StoppingCriteriaList
+from huggingface_hub import snapshot_download, hf_hub_download
+from typing import Optional, List, Any
+from contextlib import redirect_stdout
 
 from src import extension
 
@@ -73,7 +76,7 @@ class MyStoppingCriteria(StoppingCriteria):
         for stop_word in stop_words:
             stop_word_ids = tokenizer(stop_word, return_tensors='pt', add_special_tokens=False)['input_ids']
             stop_word_ids = stop_word_ids.to("cuda:0") 
-            stop_words_ids.append(stop_word_ids) 
+            stop_words_ids.append(stop_word_ids)
 
         self.stop_words_ids = stop_words_ids
 
@@ -91,8 +94,8 @@ class MascotLangChain:
     api_backend_name = ""
     model_name = ""
     function_descriptions = {
-        "eyebrow": "眉の変更 (normal/troubled/angry/happy/serious のどれか)",
-        "eyes": "目の変更 (normal/closed/happy_closed/relaxed_closed/surprized/wink のどれか)",
+        "eyebrow": "眉 (normal/troubled/angry/happy/serious のどれか)",
+        "eyes": "目 (normal/closed/happy_closed/relaxed_closed/surprized/wink のどれか)",
     }
     recieved_message = ''
     recieved_states_data = None
@@ -111,8 +114,9 @@ class MascotLangChain:
         self.human_template = human_template
         self.ai_template = ai_template
 
-    def load_model(self, model_name):
+    def load_model(self, model_name, file_name=None):
         self.model_name = model_name
+        self.file_name = file_name
 
     def load_log(self, log):
         if log is None:
@@ -128,7 +132,7 @@ class MascotLangChain:
         return False
 
     def function_system_str(self):
-        return '返事の最初に、あなたの表情などの状態を以下のフォーマットで出力してください。\n' + json.dumps(self.function_descriptions, ensure_ascii=False)
+        return '表情を変更する場合、返事の最初にあなたの表情を以下のJSONフォーマットで出力してください。\n' + json.dumps(self.function_descriptions, ensure_ascii=False)
 
     def load_setting(self, chatgpt_setting):
         self.chatgpt_messages = []
@@ -155,7 +159,9 @@ class MascotLangChain:
         if os.path.isfile(self.log_file_name + '.prev'):
             os.remove(self.log_file_name + '.prev')
 
-    def init_model(self, system_message):
+    def init_model(self):
+        system_message = self.chatgpt_messages[0]['content']
+
         if self.api_backend_name == 'HuggingFacePipeline':
             self.callback = StreamingLLMCallbackHandler()
 
@@ -177,7 +183,11 @@ class MascotLangChain:
             my_stopping_criteria = MyStoppingCriteria(tokenizer, stop_words=[stop_word]) 
             stopping_criteria_list = StoppingCriteriaList([my_stopping_criteria]) 
 
-            pipe = pipeline("text-generation", model=model, tokenizer=tokenizer, stopping_criteria=stopping_criteria_list, max_length=2048)
+            pipe = pipeline("text-generation",
+                model=model,
+                tokenizer=tokenizer,
+                stopping_criteria=stopping_criteria_list,
+                max_length=2048)
             hf = HuggingFacePipeline(
                 pipeline=pipe,
                 callback_manager=AsyncCallbackManager([self.callback]),
@@ -191,7 +201,42 @@ class MascotLangChain:
                 input_variables=['history', 'input'],
             )
 
-            self.chain = prompt | hf  | RunnablePick('response')
+            self.chain = prompt | hf # | RunnablePick('response')
+        elif self.api_backend_name == 'LlamaCpp':
+            self.callback = StreamingLLMCallbackHandler()
+
+            if os.path.exists(self.model_name):
+                download_path = self.model_name
+            elif os.path.exists(self.file_name):
+                download_path = self.file_name
+            else:
+                download_path = hf_hub_download(repo_id=self.model_name, filename=self.file_name)
+
+            stop_word = self.ai_template.split("{message}")[-1]
+            if not stop_word.isspace():
+                stop_words = [stop_word, ]
+            else:
+                stop_words = []
+
+            llm = LlamaCpp(
+                model_path=download_path,
+                n_gpu_layers=10,
+                n_batch=128,
+                n_ctx=2048,
+                streaming=True,
+                callback_manager=AsyncCallbackManager([self.callback]),
+                stop=stop_words,
+            )
+
+            prompt = NewTemplateMessagesPrompt(
+                system_message=system_message,
+                full_template=self.full_template,
+                human_template=self.human_template,
+                ai_template=self.ai_template,
+                input_variables=['history', 'input'],
+            )
+
+            self.chain = prompt | llm
 
     def send_to_chatgpt(self, content, write_log=True):
         system_messages = self.chatgpt_messages[0]['content']
@@ -212,7 +257,7 @@ class MascotLangChain:
                 history.add_ai_message(mes['content'])
 
         if self.chain is None:
-            self.init_model(system_messages)
+            self.init_model()
 
         self.is_finished = False
 
@@ -223,10 +268,12 @@ class MascotLangChain:
                 return
             self.lock()
             try:
-                ret = self.chain.invoke({
-                    'input': content,
-                    'history': history
-                })
+                with redirect_stdout(sys.stderr):
+                    ret = self.chain.invoke({
+                        'input': content,
+                        'history': history
+                    },
+                    config={'callbacks': [ConsoleCallbackHandler()]})
             except asyncio.CancelledError:
                 self.unlock()
                 self.is_finished = True
@@ -247,7 +294,7 @@ class MascotLangChain:
                 prev = self.callback.recieved_message
                 recv_str = self.callback.recieved_message
                 if self.recieved_states_data is None:
-                    end_pos = 0
+                    end_pos = -1
                     end_count = 0
                     if '{' in recv_str:
                         while True:

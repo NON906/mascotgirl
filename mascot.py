@@ -334,14 +334,16 @@ if __name__ == "__main__":
     #        mascot_chatgpt.load_log(args.chatgpt_log)
     from src.mascot_langchain import MascotLangChain
     mascot_chatgpt = MascotLangChain()
-    mascot_chatgpt.set_api_backend_name('HuggingFacePipeline')
+    #mascot_chatgpt.set_api_backend_name('HuggingFacePipeline')
+    mascot_chatgpt.set_api_backend_name('LlamaCpp')
     mascot_chatgpt.set_template('''{system}
 
 {messages}''',
         'USER: {message} ',
         'ASSISTANT: {message}</s>',
     )
-    mascot_chatgpt.load_model('Local-Novel-LLM-project/Ninja-v1-NSFW-128k')
+    #mascot_chatgpt.load_model('Local-Novel-LLM-project/Ninja-v1-NSFW-128k')
+    mascot_chatgpt.load_model('Local-Novel-LLM-project/Ninja-v1-NSFW-128k-GGUF', 'Ninja-NSFW-128k_Q_8_0.gguf')
     if args.chatgpt_setting is not None and os.path.isfile(args.chatgpt_setting):
         mascot_chatgpt.load_setting(args.chatgpt_setting)
     if not args.chatgpt_log_replace and args.chatgpt_log is not None:
