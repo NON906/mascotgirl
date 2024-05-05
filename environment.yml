@@ -172,3 +172,6 @@ dependencies:
     - tensorboard
     - transformers
     - umap-learn
+    - langchain
+    - accelerate
+    - bitsandbytes

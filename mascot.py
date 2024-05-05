@@ -38,7 +38,7 @@ from src.animation_eyes import AnimationEyes
 from src.animation_breathing import AnimationBreathing
 from src.voice_changer import check_voice_changer, VoiceChangerRVC
 from src.named_pipe import NamedPipeAudio
-from src import extension
+#from src import extension
 import install
 
 class MascotMainSettings:
@@ -142,8 +142,8 @@ class MascotMainSettings:
         self.__current_path = current_path
 
 if __name__ == "__main__":
-    for ext_dir_name in os.listdir('extensions'):
-        install.install_extensions(ext_dir_name)
+    #for ext_dir_name in os.listdir('extensions'):
+    #    install.install_extensions(ext_dir_name)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--select_chara', action='store_true')
@@ -188,8 +188,8 @@ if __name__ == "__main__":
     parser.add_argument('--bert_vits2_model')
     parser.add_argument('--bert_vits2_model_path')
     parser.add_argument('--bert_vits2_model_file_name')
-    for ext in extension.extensions:
-        ext.add_argument_to_parser(parser)
+    #for ext in extension.extensions:
+    #    ext.add_argument_to_parser(parser)
     args = parser.parse_args()
 
     if args.select_chara:
@@ -324,18 +324,32 @@ if __name__ == "__main__":
                 res = None
 
     mascot_chatgpt = None
-    if args.chatgpt_apikey is not None:
-        from src.mascot_chatgpt import MascotChatGpt
-        mascot_chatgpt = MascotChatGpt(args.chatgpt_apikey)
-        mascot_chatgpt.load_model(args.chatgpt_model_name)
-        if args.chatgpt_setting is not None and os.path.isfile(args.chatgpt_setting):
-            mascot_chatgpt.load_setting(args.chatgpt_setting, style_names)
-        if not args.chatgpt_log_replace and args.chatgpt_log is not None:
-            mascot_chatgpt.load_log(args.chatgpt_log)
+    #if args.chatgpt_apikey is not None:
+    #    from src.mascot_chatgpt import MascotChatGpt
+    #    mascot_chatgpt = MascotChatGpt(args.chatgpt_apikey)
+    #    mascot_chatgpt.load_model(args.chatgpt_model_name)
+    #    if args.chatgpt_setting is not None and os.path.isfile(args.chatgpt_setting):
+    #        mascot_chatgpt.load_setting(args.chatgpt_setting, style_names)
+    #    if not args.chatgpt_log_replace and args.chatgpt_log is not None:
+    #        mascot_chatgpt.load_log(args.chatgpt_log)
+    from src.mascot_langchain import MascotLangChain
+    mascot_chatgpt = MascotLangChain()
+    mascot_chatgpt.set_api_backend_name('HuggingFacePipeline')
+    mascot_chatgpt.set_template('''{system}
+
+{messages}''',
+        'USER: {message} ',
+        'ASSISTANT: {message}</s>',
+    )
+    mascot_chatgpt.load_model('Local-Novel-LLM-project/Ninja-v1-NSFW-128k')
+    if args.chatgpt_setting is not None and os.path.isfile(args.chatgpt_setting):
+        mascot_chatgpt.load_setting(args.chatgpt_setting)
+    if not args.chatgpt_log_replace and args.chatgpt_log is not None:
+        mascot_chatgpt.load_log(args.chatgpt_log)
     main_settings.mascot_chatgpt = mascot_chatgpt
     
-    for ext in extension.extensions:
-        ext.init(main_settings)
+    #for ext in extension.extensions:
+    #    ext.init(main_settings)
 
     http_app = FastAPI()
     http_router = APIRouter()
@@ -627,12 +641,12 @@ if __name__ == "__main__":
 
     def http_get_settings():
         settings = []
-        for index, ext in enumerate(extension.extensions):
-            ext_settings = ext.get_settings()
-            if ext_settings is not None:
-                for setting in ext_settings:
-                    setting['index'] = index
-                    settings.append(setting)
+        #for index, ext in enumerate(extension.extensions):
+        #    ext_settings = ext.get_settings()
+        #    if ext_settings is not None:
+        #        for setting in ext_settings:
+        #            setting['index'] = index
+        #            settings.append(setting)
         json_compatible_item_data = jsonable_encoder({
             'success': True,
             'settings': settings,
@@ -646,7 +660,7 @@ if __name__ == "__main__":
         value: str
 
     def http_set_setting(request: SetSettingRequest):
-        extension.extensions[request.index].set_setting(request.name, request.value)
+        #extension.extensions[request.index].set_setting(request.name, request.value)
         json_compatible_item_data = jsonable_encoder({
             'success': True,
             })
