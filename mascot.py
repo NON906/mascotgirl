@@ -192,6 +192,7 @@ if __name__ == "__main__":
     #    ext.add_argument_to_parser(parser)
     args = parser.parse_args()
 
+    selected_chara_name = ''
     if args.select_chara:
         print('キャラクターを選択してください')
         dir_path = os.path.join(os.path.dirname(__file__), 'charas')
@@ -207,6 +208,9 @@ if __name__ == "__main__":
             if k == 'image' or k == 'background_image' or k == 'chatgpt_setting' or k == 'rvc_pytorch_model_file' or k == 'rvc_onnx_model_file' or k == 'rvc_index_file' or k == 'bert_vits2_model_path':
                 v = os.path.join(dir_path, chara_dir[chara_id], v)
             setattr(args, k, v)
+        for loop, chara_name in enumerate(chara_dir):
+            if loop == chara_id:
+                selected_chara_name = chara_name
 
     main_settings = MascotMainSettings()
     main_settings.args = args
@@ -333,6 +337,7 @@ if __name__ == "__main__":
     #    if not args.chatgpt_log_replace and args.chatgpt_log is not None:
     #        mascot_chatgpt.load_log(args.chatgpt_log)
     from src.mascot_langchain import MascotLangChain
+    _ = """
     mascot_chatgpt = MascotLangChain()
     #mascot_chatgpt.set_api_backend_name('HuggingFacePipeline')
     mascot_chatgpt.set_api_backend_name('LlamaCpp')
@@ -344,11 +349,19 @@ if __name__ == "__main__":
     )
     #mascot_chatgpt.load_model('Local-Novel-LLM-project/Ninja-v1-NSFW-128k')
     mascot_chatgpt.load_model('Local-Novel-LLM-project/Ninja-v1-NSFW-128k-GGUF', 'Ninja-NSFW-128k_Q_8_0.gguf')
+    """
+    
+    mascot_chatgpt = MascotLangChain(args.chatgpt_apikey)
+    mascot_chatgpt.set_api_backend_name('OpenAIAssistant')
+    mascot_chatgpt.load_model(args.chatgpt_model_name, chara_name=selected_chara_name)
+    
     if args.chatgpt_setting is not None and os.path.isfile(args.chatgpt_setting):
         mascot_chatgpt.load_setting(args.chatgpt_setting)
     if not args.chatgpt_log_replace and args.chatgpt_log is not None:
         mascot_chatgpt.load_log(args.chatgpt_log)
     main_settings.mascot_chatgpt = mascot_chatgpt
+
+    mascot_chatgpt.init_model()
     
     #for ext in extension.extensions:
     #    ext.init(main_settings)

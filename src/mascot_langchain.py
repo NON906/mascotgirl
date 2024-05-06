@@ -10,8 +10,6 @@ import time
 import asyncio
 import torch
 
-from langchain.callbacks.base import AsyncCallbackHandler
-from langchain.callbacks.manager import AsyncCallbackManager
 from langchain.prompts import StringPromptTemplate, PromptTemplate
 from langchain.memory import ChatMessageHistory
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
@@ -22,24 +20,14 @@ from langchain.schema import (
 from langchain.callbacks.tracers import ConsoleCallbackHandler
 from langchain_community.llms import LlamaCpp
 from langchain_core.runnables.passthrough import RunnablePick
+from langchain.agents.openai_assistant import OpenAIAssistantRunnable
+from langchain_core.output_parsers import StrOutputParser
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, BitsAndBytesConfig, StoppingCriteria, StoppingCriteriaList
 from huggingface_hub import snapshot_download, hf_hub_download
 from typing import Optional, List, Any
 from contextlib import redirect_stdout
 
 from src import extension
-
-
-class StreamingLLMCallbackHandler(AsyncCallbackHandler):
-    def __init__(self):
-        self.recieved_message = ''
-        self.is_cancel = False
-
-    async def on_llm_new_token(self, token: str, **kwargs) -> None:
-        self.recieved_message += token
-        if self.is_cancel:
-            self.is_cancel = False
-            raise asyncio.CancelledError
 
 
 class NewTemplateMessagesPrompt(StringPromptTemplate):
@@ -110,6 +98,7 @@ class MascotLangChain:
     is_send_to_chatgpt = False
     last_time_chatgpt = 0.0
     chain = None
+    thread_id = None
 
     def __init__(self, apikey=None):
         self.api_key = apikey
@@ -122,9 +111,10 @@ class MascotLangChain:
         self.human_template = human_template
         self.ai_template = ai_template
 
-    def load_model(self, model_name, file_name=None):
+    def load_model(self, model_name, file_name=None, chara_name=None):
         self.model_name = model_name
         self.file_name = file_name
+        self.chara_name = chara_name
 
     def load_log(self, log):
         if log is None:
@@ -173,8 +163,6 @@ class MascotLangChain:
         system_message = self.chatgpt_messages[0]['content']
 
         if self.api_backend_name == 'HuggingFacePipeline':
-            self.callback = StreamingLLMCallbackHandler()
-
             if os.path.exists(self.model_name):
                 download_path = self.model_name
             else:
@@ -200,7 +188,6 @@ class MascotLangChain:
                 max_length=2048)
             hf = HuggingFacePipeline(
                 pipeline=pipe,
-                callback_manager=AsyncCallbackManager([self.callback]),
             )
 
             prompt = NewTemplateMessagesPrompt(
@@ -213,8 +200,6 @@ class MascotLangChain:
 
             self.chain = prompt | hf # | RunnablePick('response')
         elif self.api_backend_name == 'LlamaCpp':
-            self.callback = StreamingLLMCallbackHandler()
-
             if os.path.exists(self.model_name):
                 download_path = self.model_name
             elif os.path.exists(self.file_name):
@@ -234,7 +219,6 @@ class MascotLangChain:
                 n_batch=128,
                 n_ctx=2048,
                 streaming=True,
-                callback_manager=AsyncCallbackManager([self.callback]),
                 stop=stop_words,
             )
 
@@ -247,6 +231,31 @@ class MascotLangChain:
             )
 
             self.chain = prompt | llm
+        elif self.api_backend_name == 'OpenAIAssistant':
+            os.environ['OPENAI_API_KEY'] = self.api_key
+            try:
+                json_dict = None
+                with open('openai_assistant.json', 'r', encoding='UTF-8') as f:
+                    json_dict = json.load(f)
+                agent = OpenAIAssistantRunnable(
+                    assistant_id=json_dict[self.chara_name],
+                    as_agent=False,
+                )
+            except:
+                agent = OpenAIAssistantRunnable.create_assistant(
+                    name="mascotgirl " + self.chara_name,
+                    instructions=system_message,
+                    tools=[],
+                    model=self.model_name,
+                    as_agent=False,
+                )
+                if json_dict is None:
+                    json_dict = {}
+                json_dict[self.chara_name] = agent.assistant_id
+                with open('openai_assistant.json', 'w', encoding='UTF-8') as f:
+                    json.dump(json_dict, f)
+            
+            self.chain = agent
 
     def send_to_chatgpt(self, content, write_log=True):
         system_messages = self.chatgpt_messages[0]['content']
@@ -271,75 +280,79 @@ class MascotLangChain:
 
         self.is_finished = False
         self.recieved_message = ''
-        self.callback.recieved_message = ''
-        self.callback.is_cancel = False
+        self.recieved_states_data = None
+
+        def recv(recv_str):
+            if self.recieved_states_data is None:
+                end_pos = -1
+                end_count = 0
+                if FUNCTION_STR_START[0] in recv_str:
+                    if FUNCTION_STR_START in recv_str:
+                        while True:
+                            end_pos = recv_str.find(FUNCTION_STR_END, end_pos)
+                            if end_pos == -1:
+                                break
+                            end_count += 1
+                            end_pos += 1
+                            if recv_str.count(FUNCTION_STR_START, 0, end_pos) == end_count:
+                                break
+                if end_pos != -1:
+                    start_json = recv_str[recv_str.find(FUNCTION_STR_START) + len(FUNCTION_STR_START):end_pos - 1]
+                    self.recieved_states_data = json.loads(start_json)
+            if end_pos != -1:
+                recv_str = recv_str[:recv_str.find(FUNCTION_STR_START)] + recv_str[end_pos + len(FUNCTION_STR_END):]
+            elif FUNCTION_STR_START in recv_str:
+                recv_str = recv_str[:recv_str.find(FUNCTION_STR_START)]
+            else:
+                splited = recv_str.split(FUNCTION_STR_START[0])
+                if len(splited) > 1 and len(splited[-1]) <= len(FUNCTION_STR_START) - 1 and splited[-1] in FUNCTION_STR_START[1:]:
+                    recv_str = recv_str[:recv_str.rfind(FUNCTION_STR_START[0])]
+            self.recieved_message = recv_str
 
         def invoke():
-            if self.callback.is_cancel:
-                self.callback.is_cancel = False
-                self.is_finished = True
-                return
             self.lock()
-            try:
-                with redirect_stdout(sys.stderr):
-                    ret = self.chain.invoke({
+            recieved_message = ''
+            with redirect_stdout(sys.stderr):
+                if self.api_backend_name == 'OpenAIAssistant':
+                    if self.thread_id is None:
+                        response = self.chain.stream({
+                            'content': content,
+                        },
+                        config={'callbacks': [ConsoleCallbackHandler()]})
+                    else:
+                        response = self.chain.stream({
+                            'content': content,
+                            'thread_id': self.thread_id
+                        },
+                        config={'callbacks': [ConsoleCallbackHandler()]})
+                    for chunk_parent in response:
+                        for chunk in chunk_parent:
+                            for item in chunk.content:
+                                recieved_message += item.text.value
+                            recv(recieved_message)
+                            self.thread_id = chunk.thread_id
+                    #    if condition():
+                    #        break
+                    #if condition():
+                    #    break
+                else:
+                    response = self.chain.stream({
                         'input': content,
                         'history': history.messages
                     },
                     config={'callbacks': [ConsoleCallbackHandler()]})
-            except asyncio.CancelledError:
-                self.unlock()
-                self.is_finished = True
-                return
+                    for chunk in response:
+                        recieved_message += chunk
+                        recv(recieved_message)
+                        #if condition():
+                        #    break
+            self.chatgpt_messages.append({"role": "user", "content": content})
+            self.chatgpt_messages.append({"role": "assistant", "content": self.recieved_message})
             self.unlock()
             self.is_finished = True
 
-        def recv():
-            self.recieved_message = ''
-            self.recieved_states_data = None
-            prev = ''
-            while True:
-                if self.callback.recieved_message == prev:
-                    if self.is_finished:
-                        break
-                    time.sleep(0.01)
-                    continue
-                prev = self.callback.recieved_message
-                recv_str = self.callback.recieved_message
-                if self.recieved_states_data is None:
-                    end_pos = -1
-                    end_count = 0
-                    if FUNCTION_STR_START[0] in recv_str:
-                        if FUNCTION_STR_START in recv_str:
-                            while True:
-                                end_pos = recv_str.find(FUNCTION_STR_END, end_pos)
-                                if end_pos == -1:
-                                    break
-                                end_count += 1
-                                end_pos += 1
-                                if recv_str.count(FUNCTION_STR_START, 0, end_pos) == end_count:
-                                    break
-                    if end_pos != -1:
-                        start_json = recv_str[recv_str.find(FUNCTION_STR_START) + len(FUNCTION_STR_START):end_pos - 1]
-                        self.recieved_states_data = json.loads(start_json)
-                if end_pos != -1:
-                    recv_str = recv_str[:recv_str.find(FUNCTION_STR_START)] + recv_str[end_pos + len(FUNCTION_STR_END):]
-                elif FUNCTION_STR_START in recv_str:
-                    recv_str = recv_str[:recv_str.find(FUNCTION_STR_START)]
-                else:
-                    splited = recv_str.split(FUNCTION_STR_START[0])
-                    if len(splited) > 1 and len(splited[-1]) <= len(FUNCTION_STR_START) - 1 and splited[-1] in FUNCTION_STR_START[1:]:
-                        recv_str = recv_str[:recv_str.rfind(FUNCTION_STR_START[0])]
-                self.recieved_message = recv_str
-                if self.is_finished:
-                    break
-            self.chatgpt_messages.append({"role": "user", "content": content})
-            self.chatgpt_messages.append({"role": "assistant", "content": self.recieved_message})
-
         invoke_thread = threading.Thread(target=invoke)
         invoke_thread.start()
-        recv_thread = threading.Thread(target=recv)
-        recv_thread.start()
 
         return True
 
