@@ -87,6 +87,10 @@ class MyStoppingCriteria(StoppingCriteria):
         return False
 
 
+FUNCTION_STR_START = '```\n<!-- Change values: '
+FUNCTION_STR_END = ' -->\n```'
+
+
 class MascotLangChain:
     chatgpt_messages = []
     log_file_name = None
@@ -94,8 +98,12 @@ class MascotLangChain:
     api_backend_name = ""
     model_name = ""
     function_descriptions = {
-        "eyebrow": "眉 (normal/troubled/angry/happy/serious のどれか)",
-        "eyes": "目 (normal/closed/happy_closed/relaxed_closed/surprized/wink のどれか)",
+        "eyebrow": "眉 normal/troubled/angry/happy/serious のどれか",
+        "eyes": "目 normal/closed/happy_closed/relaxed_closed/surprized/wink のどれか",
+    }
+    function_samples = {
+        "eyebrow": "normal",
+        "eyes": "normal",
     }
     recieved_message = ''
     recieved_states_data = None
@@ -132,7 +140,9 @@ class MascotLangChain:
         return False
 
     def function_system_str(self):
-        return '表情を変更する場合、返事の最初にあなたの表情を以下のJSONフォーマットで出力してください。\n' + json.dumps(self.function_descriptions, ensure_ascii=False)
+        ret = '表情などを変更する場合、返事の最初にあなたの表情などを以下のように出力してください。\n' + FUNCTION_STR_START + json.dumps(self.function_descriptions, ensure_ascii=False) + FUNCTION_STR_END + '\n\n'
+        ret += '出力例は以下の通りです。必ず最初にこの形式で出力してください。他の形式ではこれらを出力しないでください。\n' + FUNCTION_STR_START + json.dumps(self.function_samples, ensure_ascii=False) + FUNCTION_STR_END
+        return ret
 
     def load_setting(self, chatgpt_setting):
         self.chatgpt_messages = []
@@ -260,6 +270,9 @@ class MascotLangChain:
             self.init_model()
 
         self.is_finished = False
+        self.recieved_message = ''
+        self.callback.recieved_message = ''
+        self.callback.is_cancel = False
 
         def invoke():
             if self.callback.is_cancel:
@@ -271,7 +284,7 @@ class MascotLangChain:
                 with redirect_stdout(sys.stderr):
                     ret = self.chain.invoke({
                         'input': content,
-                        'history': history
+                        'history': history.messages
                     },
                     config={'callbacks': [ConsoleCallbackHandler()]})
             except asyncio.CancelledError:
@@ -296,25 +309,28 @@ class MascotLangChain:
                 if self.recieved_states_data is None:
                     end_pos = -1
                     end_count = 0
-                    if '{' in recv_str:
-                        while True:
-                            end_pos = recv_str.find('}', end_pos)
-                            if end_pos == -1:
-                                break
-                            end_count += 1
-                            end_pos += 1
-                            if recv_str.count('{', 0, end_pos) == end_count:
-                                break
+                    if FUNCTION_STR_START[0] in recv_str:
+                        if FUNCTION_STR_START in recv_str:
+                            while True:
+                                end_pos = recv_str.find(FUNCTION_STR_END, end_pos)
+                                if end_pos == -1:
+                                    break
+                                end_count += 1
+                                end_pos += 1
+                                if recv_str.count(FUNCTION_STR_START, 0, end_pos) == end_count:
+                                    break
                     if end_pos != -1:
-                        start_json = recv_str[recv_str.find('{'):end_pos]
+                        start_json = recv_str[recv_str.find(FUNCTION_STR_START) + len(FUNCTION_STR_START):end_pos - 1]
                         self.recieved_states_data = json.loads(start_json)
-                if '{' in recv_str:
-                    if end_pos != -1:
-                        self.recieved_message = recv_str[end_pos:]
-                    else:
-                        self.recieved_message = ''
+                if end_pos != -1:
+                    recv_str = recv_str[:recv_str.find(FUNCTION_STR_START)] + recv_str[end_pos + len(FUNCTION_STR_END):]
+                elif FUNCTION_STR_START in recv_str:
+                    recv_str = recv_str[:recv_str.find(FUNCTION_STR_START)]
                 else:
-                    self.recieved_message = recv_str
+                    splited = recv_str.split(FUNCTION_STR_START[0])
+                    if len(splited) > 1 and len(splited[-1]) <= len(FUNCTION_STR_START) - 1 and splited[-1] in FUNCTION_STR_START[1:]:
+                        recv_str = recv_str[:recv_str.rfind(FUNCTION_STR_START[0])]
+                self.recieved_message = recv_str
                 if self.is_finished:
                     break
             self.chatgpt_messages.append({"role": "user", "content": content})
@@ -362,4 +378,4 @@ class MascotLangChain:
         self.last_time_chatgpt = time.time()
 
     def unlock(self):
-        self.callback.is_cancel = True
+        self.is_send_to_chatgpt = False
