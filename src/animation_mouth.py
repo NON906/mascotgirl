@@ -71,17 +71,20 @@ class AnimationMouth:
         for mora_tone_input in mora_tone_list_input:
             if mora_tone_input['mora'] in MORA_KATA_TO_MORA_PHONEMES.keys():
                 mora_tone_list.append(mora_tone_input)
+        if len(mora_tone_list) <= 0:
+            return length
         y = np.frombuffer(wav_data, dtype=np.uint8)
         y = y.view(np.int16).astype(np.float32) / 32768.0
         length = y.shape[0] / 44100.0
         dbs = librosa.feature.rms(y=y, frame_length=44100 * 4 // 120, hop_length=44100 // 120)[0]
-        #dbs = 20 * np.log10(dbs / 2e-5)
-        threshold = np.sort(dbs)[dbs.shape[0] - len(mora_tone_list)]
+        dbs = 20 * np.log10(dbs / 2e-5)
+        dbs_delta = dbs - np.concatenate([np.array([0.0, ]), dbs[:dbs.shape[0] - 1]])
+        threshold = np.sort(dbs_delta)[dbs_delta.shape[0] - len(mora_tone_list)]
         step_length = length / dbs.shape[0]
         mora_index = 0
         queries = []
         for loop in range(dbs.shape[0]):
-            if dbs[loop] >= threshold:
+            if dbs_delta[loop] >= threshold:
                 for loop2 in range(loop + 1):
                     if loop - loop2 - 1 < 0 or dbs[loop - loop2 - 1] > dbs[loop - loop2]:
                         new_query = AnimationMouthQuery()
