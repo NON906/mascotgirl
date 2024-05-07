@@ -71,11 +71,11 @@ class AnimationMouth:
         for mora_tone_input in mora_tone_list_input:
             if mora_tone_input['mora'] in MORA_KATA_TO_MORA_PHONEMES.keys():
                 mora_tone_list.append(mora_tone_input)
-        if len(mora_tone_list) <= 0:
-            return length
         y = np.frombuffer(wav_data, dtype=np.uint8)
         y = y.view(np.int16).astype(np.float32) / 32768.0
         length = y.shape[0] / 44100.0
+        if len(mora_tone_list) <= 0:
+            return length
         dbs = librosa.feature.rms(y=y, frame_length=44100 * 4 // 120, hop_length=44100 // 120)[0]
         dbs = 20 * np.log10(dbs / 2e-5)
         dbs_delta = dbs - np.concatenate([np.array([0.0, ]), dbs[:dbs.shape[0] - 1]])

@@ -75,8 +75,8 @@ class MyStoppingCriteria(StoppingCriteria):
         return False
 
 
-FUNCTION_STR_START = '```\n<!-- Change values: '
-FUNCTION_STR_END = ' -->\n```'
+FUNCTION_STR_START = '<!-- Change values: '
+FUNCTION_STR_END = ' -->'
 
 
 class MascotLangChain:
@@ -288,13 +288,14 @@ class MascotLangChain:
         self.recieved_states_data = None
 
         def recv(recv_str):
+            recv_str = copy.copy(recv_str)
             if self.recieved_states_data is None:
                 end_pos = -1
                 end_count = 0
                 if FUNCTION_STR_START[0] in recv_str:
                     if FUNCTION_STR_START in recv_str:
                         while True:
-                            end_pos = recv_str.find(FUNCTION_STR_END, end_pos)
+                            end_pos = recv_str.find(FUNCTION_STR_END, end_pos + 1)
                             if end_pos == -1:
                                 break
                             end_count += 1
@@ -315,21 +316,24 @@ class MascotLangChain:
             self.recieved_message = recv_str
 
         def invoke():
-            self.lock()
+            #self.lock()
             recieved_message = ''
-            with redirect_stdout(sys.stderr):
+            #with redirect_stdout(sys.stderr):
+            if True:
                 if self.api_backend_name == 'OpenAIAssistant':
                     if self.thread_id is None:
                         response = self.chain.stream({
                             'content': content,
                         },
-                        config={'callbacks': [ConsoleCallbackHandler()]})
+                        #config={'callbacks': [ConsoleCallbackHandler()]}
+                        )
                     else:
                         response = self.chain.stream({
                             'content': content,
                             'thread_id': self.thread_id
                         },
-                        config={'callbacks': [ConsoleCallbackHandler()]})
+                        #config={'callbacks': [ConsoleCallbackHandler()]}
+                        )
                     for chunk_parent in response:
                         for chunk in chunk_parent:
                             for item in chunk.content:
@@ -345,7 +349,8 @@ class MascotLangChain:
                         'input': content,
                         'history': history.messages
                     },
-                    config={'callbacks': [ConsoleCallbackHandler()]})
+                    #config={'callbacks': [ConsoleCallbackHandler()]}
+                    )
                     for chunk in response:
                         recieved_message += chunk
                         recv(recieved_message)
@@ -353,7 +358,9 @@ class MascotLangChain:
                         #    break
             self.chatgpt_messages.append({"role": "user", "content": content})
             self.chatgpt_messages.append({"role": "assistant", "content": self.recieved_message})
-            self.unlock()
+            #self.unlock()
+            if write_log:
+                self.write_log()
             self.is_finished = True
 
         invoke_thread = threading.Thread(target=invoke)

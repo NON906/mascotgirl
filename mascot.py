@@ -483,11 +483,12 @@ if __name__ == "__main__":
 
             is_finished, response_voice_style, response_eyebrow, response_eyes = mascot_chatgpt.get_states()
 
-            speaker_id = style_ids[0]
-            for s_id, s_name in enumerate(style_names):
-                if s_name == response_voice_style:
-                    speaker_id = style_ids[s_id]
-                    break
+            if response_voice_style is not None:
+                speaker_id = style_ids[0]
+                for s_id, s_name in enumerate(style_names):
+                    if s_name == response_voice_style:
+                        speaker_id = style_ids[s_id]
+                        break
 
             _, response_message = mascot_chatgpt.get_message()
 
