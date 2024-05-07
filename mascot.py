@@ -38,7 +38,7 @@ from src.animation_eyes import AnimationEyes
 from src.animation_breathing import AnimationBreathing
 from src.voice_changer import check_voice_changer, VoiceChangerRVC
 from src.named_pipe import NamedPipeAudio
-#from src import extension
+from src import extension
 import install
 
 class MascotMainSettings:
@@ -142,19 +142,29 @@ class MascotMainSettings:
         self.__current_path = current_path
 
 if __name__ == "__main__":
-    #for ext_dir_name in os.listdir('extensions'):
-    #    install.install_extensions(ext_dir_name)
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--select_chara', action='store_true')
+    parser.add_argument('--ignore_extensions', action='store_true')
     parser.add_argument('--http_host', default='0.0.0.0')
     parser.add_argument('--http_port', type=int, default=55007)
     parser.add_argument('--http_log', default=os.devnull)
-    parser.add_argument('--chatgpt_apikey', required=True)
+    parser.add_argument('--chat_backend', choices=['OpenAIAssistant', 'LlamaCpp', 'OpenAI'], default='OpenAI')
+    parser.add_argument('--chatgpt_apikey')
     parser.add_argument('--chatgpt_setting')
+    parser.add_argument('--chat_setting')
     parser.add_argument('--chatgpt_log')
+    parser.add_argument('--chat_log')
     parser.add_argument('--chatgpt_log_replace', action='store_true')
+    parser.add_argument('--chat_log_replace', action='store_true')
     parser.add_argument('--chatgpt_model_name', default='gpt-3.5-turbo')
+    parser.add_argument('--chat_repo_id')
+    parser.add_argument('--chat_file_name')
+    parser.add_argument('--chat_full_template', default='{system}\n\n{messages}')
+    parser.add_argument('--chat_human_template', default='Human: {message} ')
+    parser.add_argument('--chat_ai_template', default='AI: {message} ')
+    parser.add_argument('--llama_cpp_n_gpu_layers', type=int, default=10)
+    parser.add_argument('--llama_cpp_n_batch', type=int, default=128)
+    parser.add_argument('--llama_cpp_n_ctx', type=int, default=2048)
     parser.add_argument('--image')
     parser.add_argument('--skip_image_setting', action='store_true')
     parser.add_argument('--image_rembg_model_name', default='isnet-anime')
@@ -181,16 +191,24 @@ if __name__ == "__main__":
     parser.add_argument('--rvc_index_file')
     parser.add_argument('--rvc_is_half', action='store_true')
     parser.add_argument('--rvc_model_trans', type=int, default=0)
+    parser.add_argument('--bert_vits2_model')
+    parser.add_argument('--bert_vits2_model_path')
+    parser.add_argument('--bert_vits2_model_file_name')
     parser.add_argument('--run_command')
     parser.add_argument('--run_command_reload', action='store_true')
     parser.add_argument('--ngrok_auth_token')
     parser.add_argument('--show_qrcode', action='store_true')
-    parser.add_argument('--bert_vits2_model')
-    parser.add_argument('--bert_vits2_model_path')
-    parser.add_argument('--bert_vits2_model_file_name')
-    #for ext in extension.extensions:
-    #    ext.add_argument_to_parser(parser)
+    for ext in extension.extensions:
+        ext.add_argument_to_parser(parser)
     args = parser.parse_args()
+
+    if args.chatgpt_setting is None:
+        args.chatgpt_setting = args.chat_setting
+    if args.chatgpt_log is None:
+        args.chatgpt_log = args.chat_log
+    if args.chatgpt_log_replace or args.chat_log_replace:
+        args.chatgpt_log_replace = True
+        args.chat_log_replace = True
 
     selected_chara_name = ''
     if args.select_chara:
@@ -205,12 +223,18 @@ if __name__ == "__main__":
         with open(os.path.join(dir_path, chara_dir[chara_id], 'setting.json'), encoding='utf-8') as f:
             chara_dict = json.load(f)
         for k, v in chara_dict.items():
+            if k == 'run_command' or k == 'run_command_reload':
+                continue
             if k == 'image' or k == 'background_image' or k == 'chatgpt_setting' or k == 'rvc_pytorch_model_file' or k == 'rvc_onnx_model_file' or k == 'rvc_index_file' or k == 'bert_vits2_model_path':
                 v = os.path.join(dir_path, chara_dir[chara_id], v)
             setattr(args, k, v)
         for loop, chara_name in enumerate(chara_dir):
             if loop == chara_id:
                 selected_chara_name = chara_name
+
+    if not args.ignore_extensions:
+        for ext_dir_name in os.listdir('extensions'):
+            install.install_extensions(ext_dir_name)
 
     main_settings = MascotMainSettings()
     main_settings.args = args
@@ -328,43 +352,47 @@ if __name__ == "__main__":
                 res = None
 
     mascot_chatgpt = None
-    #if args.chatgpt_apikey is not None:
-    #    from src.mascot_chatgpt import MascotChatGpt
-    #    mascot_chatgpt = MascotChatGpt(args.chatgpt_apikey)
-    #    mascot_chatgpt.load_model(args.chatgpt_model_name)
-    #    if args.chatgpt_setting is not None and os.path.isfile(args.chatgpt_setting):
-    #        mascot_chatgpt.load_setting(args.chatgpt_setting, style_names)
-    #    if not args.chatgpt_log_replace and args.chatgpt_log is not None:
-    #        mascot_chatgpt.load_log(args.chatgpt_log)
-    from src.mascot_langchain import MascotLangChain
-    _ = """
-    mascot_chatgpt = MascotLangChain()
-    #mascot_chatgpt.set_api_backend_name('HuggingFacePipeline')
-    mascot_chatgpt.set_api_backend_name('LlamaCpp')
-    mascot_chatgpt.set_template('''{system}
+    if args.chat_backend == 'OpenAI':
+        from src.mascot_chatgpt import MascotChatGpt
+        mascot_chatgpt = MascotChatGpt(args.chatgpt_apikey)
+        mascot_chatgpt.load_model(args.chatgpt_model_name)
+        if args.chatgpt_setting is not None and os.path.isfile(args.chatgpt_setting):
+            mascot_chatgpt.load_setting(args.chatgpt_setting, style_names)
+        if not args.chatgpt_log_replace and args.chatgpt_log is not None:
+            mascot_chatgpt.load_log(args.chatgpt_log)
+    else:
+        from src.mascot_langchain import MascotLangChain
+        if args.chat_backend == 'LlamaCpp':
+            mascot_chatgpt = MascotLangChain()
+            mascot_chatgpt.set_api_backend_name('LlamaCpp')
+            mascot_chatgpt.set_template(
+                args.chat_full_template,
+                args.chat_human_template,
+                args.chat_ai_template,
+            )
+            mascot_chatgpt.set_llama_cpp_setting(
+                args.llama_cpp_n_gpu_layers,
+                args.llama_cpp_n_batch,
+                args.llama_cpp_n_ctx,
+            )
+            mascot_chatgpt.load_model(args.chat_repo_id, args.chat_file_name)
+        elif args.chat_backend == 'OpenAIAssistant':
+            mascot_chatgpt = MascotLangChain(args.chatgpt_apikey)
+            mascot_chatgpt.set_api_backend_name('OpenAIAssistant')
+            mascot_chatgpt.load_model(args.chatgpt_model_name, chara_name=selected_chara_name)
+    
+        if args.chatgpt_setting is not None and os.path.isfile(args.chatgpt_setting):
+            mascot_chatgpt.load_setting(args.chatgpt_setting)
+        if not args.chatgpt_log_replace and args.chatgpt_log is not None:
+            mascot_chatgpt.load_log(args.chatgpt_log)
 
-{messages}''',
-        'USER: {message} ',
-        'ASSISTANT: {message}</s>',
-    )
-    #mascot_chatgpt.load_model('Local-Novel-LLM-project/Ninja-v1-NSFW-128k')
-    mascot_chatgpt.load_model('Local-Novel-LLM-project/Ninja-v1-NSFW-128k-GGUF', 'Ninja-NSFW-128k_Q_8_0.gguf')
-    """
-    
-    mascot_chatgpt = MascotLangChain(args.chatgpt_apikey)
-    mascot_chatgpt.set_api_backend_name('OpenAIAssistant')
-    mascot_chatgpt.load_model(args.chatgpt_model_name, chara_name=selected_chara_name)
-    
-    if args.chatgpt_setting is not None and os.path.isfile(args.chatgpt_setting):
-        mascot_chatgpt.load_setting(args.chatgpt_setting)
-    if not args.chatgpt_log_replace and args.chatgpt_log is not None:
-        mascot_chatgpt.load_log(args.chatgpt_log)
+        mascot_chatgpt.init_model()
+
     main_settings.mascot_chatgpt = mascot_chatgpt
-
-    mascot_chatgpt.init_model()
     
-    #for ext in extension.extensions:
-    #    ext.init(main_settings)
+    if not args.ignore_extensions:
+        for ext in extension.extensions:
+            ext.init(main_settings)
 
     http_app = FastAPI()
     http_router = APIRouter()
@@ -656,12 +684,13 @@ if __name__ == "__main__":
 
     def http_get_settings():
         settings = []
-        #for index, ext in enumerate(extension.extensions):
-        #    ext_settings = ext.get_settings()
-        #    if ext_settings is not None:
-        #        for setting in ext_settings:
-        #            setting['index'] = index
-        #            settings.append(setting)
+        if not args.ignore_extensions:
+            for index, ext in enumerate(extension.extensions):
+                ext_settings = ext.get_settings()
+                if ext_settings is not None:
+                    for setting in ext_settings:
+                        setting['index'] = index
+                        settings.append(setting)
         json_compatible_item_data = jsonable_encoder({
             'success': True,
             'settings': settings,
@@ -675,7 +704,8 @@ if __name__ == "__main__":
         value: str
 
     def http_set_setting(request: SetSettingRequest):
-        #extension.extensions[request.index].set_setting(request.name, request.value)
+        if not args.ignore_extensions:
+            extension.extensions[request.index].set_setting(request.name, request.value)
         json_compatible_item_data = jsonable_encoder({
             'success': True,
             })

@@ -13,11 +13,11 @@ call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
 cd mascotgirl
 python mascot.py ^
     --select_chara ^
-    --voice_changer_path "..\bin\MMVCServerSIO\start_http.bat" ^
+    --ignore_extensions ^
+    --voicevox_url "" ^
+    --chat_backend "OpenAIAssistant" ^
     --chatgpt_apikey "__CHATGPT_APIKEY__" ^
     --chatgpt_model_name "__CHATGPT_MODEL_NAME__" ^
-    --voicevox_path "__VOICEVOX_PATH__" ^
-    --voicevox_url "__VOICEVOX_URL__" ^
     --chatgpt_log "chatgpt.json" ^
     --chatgpt_log_replace ^
     --image_pipe_name "\\.\pipe\mascot_image_pipe" ^
@@ -35,11 +35,11 @@ call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
 cd mascotgirl
 python mascot.py ^
     --select_chara ^
-    --voice_changer_path "..\bin\MMVCServerSIO\start_http.bat" ^
+    --ignore_extensions ^
+    --voicevox_url "" ^
+    --chat_backend "OpenAIAssistant" ^
     --chatgpt_apikey "__CHATGPT_APIKEY__" ^
     --chatgpt_model_name "__CHATGPT_MODEL_NAME__" ^
-    --voicevox_path "__VOICEVOX_PATH__" ^
-    --voicevox_url "__VOICEVOX_URL__" ^
     --ngrok_auth_token "__NGROK_AUTH_TOKEN__" ^
     --show_qrcode ^
     --chatgpt_log "chatgpt.json" ^
@@ -48,18 +48,6 @@ python mascot.py ^
     --framerate 30 ^
     --run_command_reload ^
     --run_command "ffmpeg\ffmpeg -y -f rawvideo -pix_fmt rgba -s 512x512 -framerate 30 -thread_queue_size 8192 -i \\.\pipe\mascot_image_pipe -f s16le -ar __AUDIO_FREQ__ -ac 1 -thread_queue_size 8192 -i \\.\pipe\mascot_pipe -auto-alt-ref 0 -deadline realtime -quality realtime -cpu-used 4 -row-mt 1 -crf 30 -b:v 0 -pass 1 -c:v libvpx-vp9 -c:a libopus -f matroska tcp://0.0.0.0:55009/stream?listen"
-cd ..
-call %~dp0bin\Miniconda3\condabin\conda deactivate
-endlocal
-    '''
-
-    setting_chara_bat_content = r'''
-@echo off
-setlocal
-set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts;%PATH%
-call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
-cd mascotgirl
-python setting_chara.py
 cd ..
 call %~dp0bin\Miniconda3\condabin\conda deactivate
 endlocal
@@ -91,7 +79,7 @@ endlocal
 
     select = ''
     while select is None or select == '':
-        select = input('ChatGPTのAPIキーを入力してください（必須）: \n')
+        select = input('ChatGPTのAPIキーを入力してください: \n')
     replace('__CHATGPT_APIKEY__', select)
 
     select = input('使用するChatGPTのモデル名を入力してください (gpt-3.5-turbo): \n')
@@ -99,18 +87,7 @@ endlocal
         select = 'gpt-3.5-turbo'
     replace('__CHATGPT_MODEL_NAME__', select)
 
-    if os.path.isfile('.installed/.voicevox_nemo'):
-        replace('__VOICEVOX_PATH__', '..\\bin\\voicevox_nemo\\run.exe')
-        replace('__VOICEVOX_URL__', 'http://localhost:50121')
-        replace('__AUDIO_FREQ__', '48000')
-    elif os.path.isfile('.installed/.voicevox'):
-        replace('__VOICEVOX_PATH__', '..\\bin\\voicevox\\run.exe')
-        replace('__VOICEVOX_URL__', 'http://localhost:50021')
-        replace('__AUDIO_FREQ__', '48000')
-    else:
-        replace('__VOICEVOX_PATH__', '')
-        replace('__VOICEVOX_URL__', '')
-        replace('__AUDIO_FREQ__', '44100')
+    replace('__AUDIO_FREQ__', '44100')
 
     while True:
         select = input('リモート接続機能(Androidなど)を使用しますか？ [y/N]: ')
@@ -132,7 +109,3 @@ endlocal
             run_share_bat_content.replace('\n', '\r\n')
         with open('run_share.bat', 'w', encoding='shift_jis') as open_file:
             open_file.write(run_share_bat_content)
-    if not '\r\n' in setting_chara_bat_content:
-        setting_chara_bat_content.replace('\n', '\r\n')
-    with open('setting_chara.bat', 'w', encoding='shift_jis') as open_file:
-        open_file.write(setting_chara_bat_content)

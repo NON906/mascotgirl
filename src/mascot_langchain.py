@@ -27,7 +27,7 @@ from huggingface_hub import snapshot_download, hf_hub_download
 from typing import Optional, List, Any
 from contextlib import redirect_stdout
 
-from src import extension
+#from src import extension
 
 
 class NewTemplateMessagesPrompt(StringPromptTemplate):
@@ -110,6 +110,11 @@ class MascotLangChain:
         self.full_template = full_template
         self.human_template = human_template
         self.ai_template = ai_template
+
+    def set_llama_cpp_setting(self, n_gpu_layers, n_batch, n_ctx):
+        self.n_gpu_layers = n_gpu_layers
+        self.n_batch = n_batch
+        self.n_ctx = n_ctx
 
     def load_model(self, model_name, file_name=None, chara_name=None):
         self.model_name = model_name
@@ -215,9 +220,9 @@ class MascotLangChain:
 
             llm = LlamaCpp(
                 model_path=download_path,
-                n_gpu_layers=10,
-                n_batch=128,
-                n_ctx=2048,
+                n_gpu_layers=self.n_gpu_layers,
+                n_batch=self.n_batch,
+                n_ctx=self.n_ctx,
                 streaming=True,
                 stop=stop_words,
             )
@@ -375,8 +380,8 @@ class MascotLangChain:
             self.chatgpt_messages = self.chatgpt_messages[:-2]
             if write_log:
                 self.write_log()
-            for ext in extension.extensions:
-                ext.remove_last_conversation()
+            #for ext in extension.extensions:
+            #    ext.remove_last_conversation()
 
     def get_model_name(self):
         return self.model_name
