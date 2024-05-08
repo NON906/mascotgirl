@@ -121,6 +121,9 @@ class MascotLangChain:
         self.file_name = file_name
         self.chara_name = chara_name
 
+    def set_log(self, log):
+        self.log_file_name = log
+
     def load_log(self, log):
         if log is None:
             return False
@@ -155,7 +158,8 @@ class MascotLangChain:
 
     def write_log(self):
         if self.log_file_name is None:
-            return        
+            return
+
         with open(self.log_file_name + '.tmp', 'w', encoding='UTF-8') as f:
             f.write(json.dumps(self.chatgpt_messages, sort_keys=True, indent=4, ensure_ascii=False))
         if os.path.isfile(self.log_file_name):
@@ -163,6 +167,16 @@ class MascotLangChain:
         os.rename(self.log_file_name + '.tmp', self.log_file_name)
         if os.path.isfile(self.log_file_name + '.prev'):
             os.remove(self.log_file_name + '.prev')
+
+        if self.thread_id is not None:
+            if os.path.isfile(os.path.join(os.path.dirname(self.log_file_name), 'openai_assistant_threads.json')):
+                with open(os.path.join(os.path.dirname(self.log_file_name), 'openai_assistant_threads.json'), 'r', encoding='UTF-8') as f:
+                    json_dict = json.load(f)
+            else:
+                json_dict = {}
+            json_dict[self.chara_name] = self.thread_id
+            with open(os.path.join(os.path.dirname(self.log_file_name), 'openai_assistant_threads.json'), 'w', encoding='UTF-8') as f:
+                json.dump(json_dict, f)
 
     def init_model(self):
         system_message = self.chatgpt_messages[0]['content']
@@ -237,10 +251,15 @@ class MascotLangChain:
 
             self.chain = prompt | llm
         elif self.api_backend_name == 'OpenAIAssistant':
+            if self.log_file_name is not None:
+                current_path = os.path.dirname(self.log_file_name)
+            else:
+                current_path = os.getcwd()
             os.environ['OPENAI_API_KEY'] = self.api_key
+
             try:
                 json_dict = None
-                with open('openai_assistant.json', 'r', encoding='UTF-8') as f:
+                with open(os.path.join(current_path, 'openai_assistant.json'), 'r', encoding='UTF-8') as f:
                     json_dict = json.load(f)
                 agent = OpenAIAssistantRunnable(
                     assistant_id=json_dict[self.chara_name],
@@ -257,8 +276,14 @@ class MascotLangChain:
                 if json_dict is None:
                     json_dict = {}
                 json_dict[self.chara_name] = agent.assistant_id
-                with open('openai_assistant.json', 'w', encoding='UTF-8') as f:
+                with open(os.path.join(current_path, 'openai_assistant.json'), 'w', encoding='UTF-8') as f:
                     json.dump(json_dict, f)
+            
+            if os.path.isfile(os.path.join(current_path, 'openai_assistant_threads.json')):
+                with open(os.path.join(current_path, 'openai_assistant_threads.json'), 'r', encoding='UTF-8') as f:
+                    json_dict = json.load(f)
+                    if self.chara_name in json_dict.keys():
+                        self.thread_id = json_dict[self.chara_name]
             
             self.chain = agent
 
@@ -289,8 +314,8 @@ class MascotLangChain:
 
         def recv(recv_str):
             recv_str = copy.copy(recv_str)
+            end_pos = -1
             if self.recieved_states_data is None:
-                end_pos = -1
                 end_count = 0
                 if FUNCTION_STR_START[0] in recv_str:
                     if FUNCTION_STR_START in recv_str:

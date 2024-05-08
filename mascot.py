@@ -363,7 +363,7 @@ if __name__ == "__main__":
         if args.chatgpt_setting is not None and os.path.isfile(args.chatgpt_setting):
             mascot_chatgpt.load_setting(args.chatgpt_setting, style_names)
         if not args.chatgpt_log_replace and args.chatgpt_log is not None:
-            mascot_chatgpt.load_log(args.chatgpt_log)
+            mascot_chatgpt.load_log(os.path.join(current_path, args.chatgpt_log))
     else:
         from src.mascot_langchain import MascotLangChain
         if args.chat_backend == 'LlamaCpp':
@@ -388,7 +388,9 @@ if __name__ == "__main__":
         if args.chatgpt_setting is not None and os.path.isfile(args.chatgpt_setting):
             mascot_chatgpt.load_setting(args.chatgpt_setting)
         if not args.chatgpt_log_replace and args.chatgpt_log is not None:
-            mascot_chatgpt.load_log(args.chatgpt_log)
+            mascot_chatgpt.load_log(os.path.join(current_path, args.chatgpt_log))
+        elif args.chatgpt_log is not None:
+            mascot_chatgpt.set_log(os.path.join(current_path, args.chatgpt_log))
 
         mascot_chatgpt.init_model()
 
