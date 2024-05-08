@@ -53,6 +53,18 @@ call %~dp0bin\Miniconda3\condabin\conda deactivate
 endlocal
     '''
 
+    train_style_bert_vits2_bat_content = r'''
+@echo off
+setlocal
+set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts;%PATH%
+call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
+cd mascotgirl/Style-Bert-VITS2
+python app.py
+cd ../..
+call %~dp0bin\Miniconda3\condabin\conda deactivate
+endlocal
+    '''
+
     def replace(target: str, content: str):
         global run_bat_content
         global run_share_bat_content
@@ -109,3 +121,8 @@ endlocal
             run_share_bat_content.replace('\n', '\r\n')
         with open('run_share.bat', 'w', encoding='shift_jis') as open_file:
             open_file.write(run_share_bat_content)
+    if not '\r\n' in train_style_bert_vits2_bat_content:
+        train_style_bert_vits2_bat_content.replace('\n', '\r\n')
+    with open('train_style_bert_vits2.bat', 'w', encoding='shift_jis') as open_file:
+        open_file.write(train_style_bert_vits2_bat_content)
+    
