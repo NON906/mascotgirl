@@ -91,10 +91,10 @@ endlocal
 
     select = ''
     while select is None or select == '':
-        select = input('ChatGPTのAPIキーを入力してください: \n')
+        select = input('OpenAIのAPIキーを入力してください: \n')
     replace('__CHATGPT_APIKEY__', select)
 
-    select = input('使用するChatGPTのモデル名を入力してください (gpt-3.5-turbo): \n')
+    select = input('使用するOpenAIのモデル名を入力してください (gpt-3.5-turbo): \n')
     if select is None or select == '':
         select = 'gpt-3.5-turbo'
     replace('__CHATGPT_MODEL_NAME__', select)

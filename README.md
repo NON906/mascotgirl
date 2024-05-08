@@ -1,7 +1,13 @@
 # 推しのキャラと会話するためのプログラム
 
-ChatGPTを利用して、好きなキャラクターと会話できるシステムを作りました。  
-これだけだと二番煎じどころではない内容ですので、キャラクターの立ち絵やボイスを使って、本当にその任意のキャラクターに会話しているかのようなことが出来るようにしました。
+![スクリーンショット](screenshot.png)
+
+各種AIを利用して、好きなキャラクターと会話できるシステムを作りました。  
+キャラクターの立ち絵やボイスを使って、本当にその任意のキャラクターに会話しているかのようなことが出来るようにしました。
+
+NOTE: ver0.7にて大幅な変更を行いました。  
+動作しない場合は過去のバージョンを利用してください。  
+また、[Style-Bert-VITS2](https://github.com/litagin02/Style-Bert-VITS2)を使用したためライセンスも変更しています。
 
 ## 必要なもの
 
@@ -22,20 +28,20 @@ ChatGPTを利用して、好きなキャラクターと会話できるシステ�
 - キャラクターのボイス（任意）  
 対象のキャラクターのボイスを可能な限り用意してください。  
 しゃべっている内容は自由ですが、実際に学習する形式になるので、設定や立ち絵とは違って多く用意する必要があります。  
-なお、VOICEVOXの音声そのままでいいのであれば不要です。
+なお、サンプルの音声そのままでいいのであれば不要です。
 
 ## インストール方法
 
 ### 1. インストーラーのダウンロード・実行（必須）
 
-ver0.5からインストーラー(install.bat)のみで、各種アプリ・ライブラリをインストールすることが出来るようになりました。  
-install.batを[こちらからダウンロード](https://github.com/NON906/mascotgirl/releases/download/ver0.6.1/install.bat)し、インストールしたい場所に移動されてから、ダブルクリックで実行してください。  
+インストーラー(install.bat)のみで、各種アプリ・ライブラリをインストールすることが出来ます。  
+install.batを[こちらからダウンロード](https://github.com/NON906/mascotgirl/releases/download/ver0.7/install.bat)し、インストールしたい場所に移動されてから、ダブルクリックで実行してください。  
 画面の指示が出た場合は、その指示に従って入力してください。  
-デフォルトで問題ない場合は、（ChatGPTのAPIキー以外は）空白でも問題ありません。  
+デフォルトで問題ない場合は、（OpenAIのAPIキー以外は）空白でも問題ありません。  
 時間がかかるため、以降の項目はその間に行うことをおすすめします。  
 なお、何らかの理由で設定を変更したい場合は、このinstall.batを再度起動すれば変更が可能です。
 
-### 2. ChatGPTのAPIキーを取得（必須）
+### 2. OpenAIのAPIキーを取得
 
 ChatGPTをプログラム上で利用するためのAPIキーを取得します。  
 （1.が時間がかかるため、その間に行うことをおすすめします）
@@ -48,7 +54,7 @@ https://platform.openai.com/account/api-keys
 
 後は、1.でAPIキーを聞かれたら、そのコピーした内容を貼り付けてください。
 
-### 3. ChatGPTの設定ファイルの作成
+### 3. チャットAIの設定ファイルの作成
 
 以下のような書式のtxtファイルを作成してください。  
 ``{キャラクター名}``などは適宜置換してください。
@@ -77,76 +83,111 @@ Please strictly adhere to the following conversation rules and settings:
 ### 4. Androidアプリのインストール・ngrokのトークンを取得
 
 Androidアプリからリモートで動作できるようになっています。  
-Androidアプリ本体は[こちらからダウンロード](https://github.com/NON906/mascotgirl/releases/download/ver0.6.1/MascotGirl_ver0.6.1.apk)できます。
+Androidアプリ本体は[こちらからダウンロード](https://github.com/NON906/mascotgirl/releases/download/ver0.7/MascotGirl_ver0.7.apk)できます。
 
 このアプリを使用したい場合は、ngrokを使用するため、[こちらから登録](https://ngrok.com/)し、[こちらからトークンを取得](https://dashboard.ngrok.com/auth)してください。
 
 後は、1.で聞かれたら、このトークンを入力してください。
 
-### 5. 実行
+### 5. キャラクターの追加
+
+以下の手順に従ってください。
+
+5-1. charasフォルダ内に新しいフォルダを作成してください  
+5-2. そのフォルダの中に以下を入れてください
+  - chara_image.png（キャラクター画像）
+  - background.png（背景画像）
+  - chara_setting.txt（「3.」のキャラクター設定のtxtファイル）
+  - setting.json（後述）
+
+setting.jsonの内容は以下の通りです。
+
+```json
+{
+  "image": "chara_image.png",
+  "background_image": "background.png",
+  "chat_setting": "chara_setting.txt",
+  "bert_vits2_model": "jvnv-F1-jp", // サンプルの音声を設定
+  "bert_vits2_model_file_name": "jvnv-F1-jp_e160_s14000.safetensors" // サンプルの音声を設定
+}
+```
+
+### 6. 実行
 
 1.が完了すると、run.batが生成されるので、それをダブルクリックしてください。  
 Androidのアプリを使用する場合は、代わりにrun_share.batをダブルクリックして起動し、QRコードが出てきたら、それをAndroidで読み取ってください。
 
-## RVCモデルの学習（任意）
+## Style-Bert-VITS2モデルの学習（任意）
 
-キャラクターの音声から、ボイスチェンジャーのモデルを学習させます。  
-ボイスチェンジャーを使わず、VOICEVOXの音声をそのまま使う場合は不要ですが、好きなキャラクターのボイスでしゃべらせたい場合は行ってください。  
-なお、この機能を利用する場合は、install.bat上でVC Clientのインストールが必要になります。  
+キャラクターの音声から、音声合成のモデルを学習させます。  
+サンプルの音声をそのまま使う場合は不要ですが、好きなキャラクターのボイスでしゃべらせたい場合は行ってください。  
 
-まず、[こちらのページ](https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main)から、「RVC-beta.7z」をダウンロードします。  
-ダウンロードしたら、[7-zip](https://7-zip.opensource.jp/)などで解凍してください。
+train_style_bert_vits2.batを実行すると[Style-Bert-VITS2](https://github.com/litagin02/Style-Bert-VITS2)のエディタを起動するので、画面に従ってください。  
+このbatは、同リポジトリのapp.pyを起動するだけのものです。  
+詳細は[こちら](https://github.com/litagin02/Style-Bert-VITS2?tab=readme-ov-file#%E5%AD%A6%E7%BF%92)から確認してください。  
+（本家様に迷惑をかけないようご注意ください）
 
-次に、「go-web.bat」をダブルクリックしてください。  
-自動でブラウザが開きます。
+作成し終わったら、キャラクターのフォルダ内に以下のファイルを追加してください。
+  - bert_vits2_modelフォルダ（以下のStyle-Bert-VITS2モデルのファイル（任意））
+    - config.json
+    - style_vectors.npy
+    - *.safetensors（番号が一番大きいもの）
 
-この後、「トレーニング」タブからボイスチェンジャーのモデルを学習・作成します。  
-以下の値を変更してください。
+さらに、setting.jsonの内容を以下のようにすると完成です。
 
-- ステップ1の「モデル名」
-- ステップ2aの「トレーニング用フォルダのパスを入力してください」（wavファイルが存在するパスを指定）
-- ステップ3の「総エポック数」（100くらい？）
-
-以下は必要に応じて変更してください。
-
-- ステップ1の「モデルに音高ガイドがあるかどうか(歌唱には必要ですが、音声には必要ありません)」
-- ステップ1の「バージョン」（v2の方が高性能）
-- ステップ3の「エポックごとの保存頻度」（空き容量に応じて変更）
-- ステップ3の「ハードディスク容量を節約するため、最新のckptファイルのみを保存しますか？」（空き容量に応じて変更）
-
-その後、以下の順番でボタンをクリックしてください。
-
-1. ステップ2aの「データ処理」
-2. ステップ2bの「特徴抽出」
-3. ステップ3の「ワンクリックトレーニング」
-
-3.は非常に時間がかかるため、時間があるときに実行してください。  
-
-完成したデータは以下に配置されます。  
-削除しないように気をつけてください。
-
-```
-weights\xxx.pth
-logs\xxx\added_IVF267_Flat_nprobe_1_xxx_v2.index
+```json
+{
+  "image": "chara_image.png",
+  "background_image": "background.png",
+  "chat_setting": "chara_setting.txt",
+  "bert_vits2_model": "xxx", // モデルの名称（重複していなければ何でもよい）
+  "bert_vits2_model_path": "bert_vits2_model", // フォルダのパスを指定
+  "bert_vits2_model_file_name": "xxx.safetensors", // bert_vits2_model_pathの中にあるsafetensorsファイルの名前
+}
 ```
 
-完成したら、install.batを起動し、これらのパスを入力してください。
+## 上級者向け
+
+OpenAI APIではなく、ローカルLLMを使用したい場合、setting.jsonに以下を追加することで置き換えることができます（llama.cppに対応したggufファイルのみ）。
+
+```json
+{
+  // 中略
+  "chat_backend": "LlamaCpp",
+  "chat_file_name": "ggml-model-Q6_K.gguf", // ローカルLLMのファイル名
+  "chat_full_template": "{system}\n\n{messages}",
+  "chat_human_template": "Human: {message} ",
+  "chat_ai_template": "AI: {message} ",
+  "llama_cpp_n_gpu_layers": 10,
+  "llama_cpp_n_batch": 128,
+  "llama_cpp_n_ctx": 2048
+}
+```
+
+もしくは、以下のようにすることでHugging Faceからダウンロードして実行することも出来ます。
+
+```json
+{
+  // 中略
+  "chat_backend": "LlamaCpp",
+  "chat_repo_id": "TheBloke/openchat-3.5-0106-GGUF", // リポジトリ名
+  "chat_file_name": "openchat-3.5-0106.Q6_K.gguf", // ファイル名
+  // 中略
+}
+```
 
 ## 使用しているするもの
 
-- [ChatGPT](https://openai.com/blog/chatgpt)（APIキー）  
+- [OpenAI API](https://platform.openai.com/docs/overview)  
+ChatGPT互換のAPIです。  
 ChatGPTはローカルで実行できる仕組みにはなっていないので、APIを使います。  
 無料分がありますが、それを超えると有料になるようなので気を付けてください。
-
-- [VOICEVOX](https://voicevox.hiroshiba.jp/)  
-テキストからキャラクターの音声を生成するソフトです。  
-また、口パクの内容もこれから得られるデータから作っているので必須です。
 
 - [talking-head-anime-3-demo(tha3)](https://github.com/pkhungurn/talking-head-anime-3-demo)  
 1枚の立ち絵からリアルタイムに表情などを変化させることができるものです。  
 
-- [VC Client](https://github.com/w-okada/voice-changer)（任意）  
-音声を変換するもの、いわゆるボイスチェンジャーです。  
-複数のモデルに対応しており、今回はRVC形式を使います。
+- [Style-Bert-VITS2](https://github.com/litagin02/Style-Bert-VITS2)  
+文章から音声を生成することが出来るものです。  
+任意の音声を学習して、それに近い音声を生成できるようにすることも出来ます。
 
-- その他、Anaconda・rembg・OpenCVなど  
+- その他、Miniconda・rembg・OpenCVなど  
