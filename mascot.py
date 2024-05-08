@@ -202,14 +202,6 @@ if __name__ == "__main__":
         ext.add_argument_to_parser(parser)
     args = parser.parse_args()
 
-    if args.chatgpt_setting is None:
-        args.chatgpt_setting = args.chat_setting
-    if args.chatgpt_log is None:
-        args.chatgpt_log = args.chat_log
-    if args.chatgpt_log_replace or args.chat_log_replace:
-        args.chatgpt_log_replace = True
-        args.chat_log_replace = True
-
     selected_chara_name = ''
     if args.select_chara:
         print('キャラクターを選択してください')
@@ -225,12 +217,24 @@ if __name__ == "__main__":
         for k, v in chara_dict.items():
             if k == 'run_command' or k == 'run_command_reload':
                 continue
-            if k == 'image' or k == 'background_image' or k == 'chatgpt_setting' or k == 'rvc_pytorch_model_file' or k == 'rvc_onnx_model_file' or k == 'rvc_index_file' or k == 'bert_vits2_model_path':
+            if k == 'chat_repo_id' or k == 'chat_file_name':
+                new_v = os.path.join(dir_path, chara_dir[chara_id], v)
+                if os.path.exists(new_v):
+                    v = new_v
+            if k == 'image' or k == 'background_image' or k == 'chatgpt_setting' or k == 'chat_setting' or k == 'rvc_pytorch_model_file' or k == 'rvc_onnx_model_file' or k == 'rvc_index_file' or k == 'bert_vits2_model_path':
                 v = os.path.join(dir_path, chara_dir[chara_id], v)
             setattr(args, k, v)
         for loop, chara_name in enumerate(chara_dir):
             if loop == chara_id:
                 selected_chara_name = chara_name
+
+    if args.chatgpt_setting is None:
+        args.chatgpt_setting = args.chat_setting
+    if args.chatgpt_log is None:
+        args.chatgpt_log = args.chat_log
+    if args.chatgpt_log_replace or args.chat_log_replace:
+        args.chatgpt_log_replace = True
+        args.chat_log_replace = True
 
     if not args.ignore_extensions:
         for ext_dir_name in os.listdir('extensions'):
@@ -338,7 +342,7 @@ if __name__ == "__main__":
     audio_freq = 48000
     if args.bert_vits2_model is not None:
         if args.bert_vits2_model_path is not None:
-            shutil.copytree(args.bert_vits2_model_path, os.path.join('Style-Bert-VITS2', 'model_assets', args.bert_vits2_model))
+            shutil.copytree(args.bert_vits2_model_path, os.path.join('Style-Bert-VITS2', 'model_assets', args.bert_vits2_model), dirs_exist_ok=True)
         os.chdir('Style-Bert-VITS2')
         subprocess.Popen(['python', 'server_editor.py'])
         os.chdir(current_path)

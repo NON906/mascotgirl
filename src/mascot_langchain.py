@@ -205,9 +205,9 @@ class MascotLangChain:
 
             self.chain = prompt | hf # | RunnablePick('response')
         elif self.api_backend_name == 'LlamaCpp':
-            if os.path.exists(self.model_name):
+            if self.model_name is not None and os.path.exists(self.model_name):
                 download_path = self.model_name
-            elif os.path.exists(self.file_name):
+            elif self.file_name is not None and os.path.exists(self.file_name):
                 download_path = self.file_name
             else:
                 download_path = hf_hub_download(repo_id=self.model_name, filename=self.file_name)
