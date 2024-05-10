@@ -77,7 +77,7 @@ class AnimationMouth:
         if len(mora_tone_list) <= 0:
             return length
         dbs = librosa.feature.rms(y=y, frame_length=44100 * 4 // 120, hop_length=44100 // 120)[0]
-        dbs = 20 * np.log10(dbs / 2e-5)
+        dbs = 20 * np.log10((dbs + 1e-10) / 2e-5)
         dbs_delta = dbs - np.concatenate([np.array([0.0, ]), dbs[:dbs.shape[0] - 1]])
         threshold = np.sort(dbs_delta)[dbs_delta.shape[0] - len(mora_tone_list)]
         step_length = length / dbs.shape[0]
