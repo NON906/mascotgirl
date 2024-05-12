@@ -396,7 +396,11 @@ if __name__ == "__main__":
         elif args.chatgpt_log is not None:
             mascot_chatgpt.set_log(os.path.join(current_path, args.chatgpt_log))
 
-        mascot_chatgpt.init_model()
+        tools = [mascot_chatgpt.default_tool(), ]
+        if not args.ignore_extensions:
+            for ext in extension.extensions:
+                tools += ext.get_langchain_tools()
+        mascot_chatgpt.init_model(tools)
 
     main_settings.mascot_chatgpt = mascot_chatgpt
 

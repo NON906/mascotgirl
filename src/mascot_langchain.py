@@ -23,6 +23,8 @@ from langchain_core.runnables.passthrough import RunnablePick
 from langchain.agents.openai_assistant import OpenAIAssistantRunnable
 from langchain_core.output_parsers import StrOutputParser
 from langchain.agents import AgentExecutor
+from langchain.pydantic_v1 import BaseModel, Field
+from langchain.tools import StructuredTool
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, BitsAndBytesConfig, StoppingCriteria, StoppingCriteriaList
 from huggingface_hub import snapshot_download, hf_hub_download
 from typing import Optional, List, Any
@@ -76,26 +78,14 @@ class MyStoppingCriteria(StoppingCriteria):
         return False
 
 
-FUNCTION_STR_START = '<!-- Change values: '
-FUNCTION_STR_END = ' -->'
-
-
 class MascotLangChain:
     chatgpt_messages = []
     log_file_name = None
     api_key = None
     api_backend_name = ""
     model_name = ""
-    function_descriptions = {
-        "eyebrow": "眉 normal/troubled/angry/happy/serious のどれか",
-        "eyes": "目 normal/closed/happy_closed/relaxed_closed/surprized/wink のどれか",
-    }
-    function_samples = {
-        "eyebrow": "normal",
-        "eyes": "normal",
-    }
     recieved_message = ''
-    recieved_states_data = None
+    recieved_states_data = {}
     is_send_to_chatgpt = False
     last_time_chatgpt = 0.0
     chain = None
@@ -138,11 +128,6 @@ class MascotLangChain:
             pass
         return False
 
-    def function_system_str(self):
-        ret = '表情などを変更する場合、返事の最初にあなたの表情などを以下のように出力してください。\n' + FUNCTION_STR_START + json.dumps(self.function_descriptions, ensure_ascii=False) + FUNCTION_STR_END + '\n\n'
-        ret += '出力例は以下の通りです。必ず最初にこの形式で出力してください。他の形式ではこれらを出力しないでください。\n' + FUNCTION_STR_START + json.dumps(self.function_samples, ensure_ascii=False) + FUNCTION_STR_END
-        return ret
-
     def load_setting(self, chatgpt_setting):
         self.chatgpt_messages = []
         if os.path.isfile(chatgpt_setting):
@@ -150,11 +135,9 @@ class MascotLangChain:
                 chatgpt_setting_content = f.read()
         else:
             chatgpt_setting_content = ''
-        chatgpt_setting_content += '\n\n' + self.function_system_str()
         self.chatgpt_messages.append({"role": "system", "content": chatgpt_setting_content})
 
     def change_setting_from_str(self, chatgpt_setting_str):
-        chatgpt_setting_str += '\n\n' + self.function_system_str()
         self.chatgpt_messages[0] = {"role": "system", "content": chatgpt_setting_str}
 
     def write_log(self):
@@ -179,11 +162,30 @@ class MascotLangChain:
             with open(os.path.join(os.path.dirname(self.log_file_name), 'openai_assistant_threads.json'), 'w', encoding='UTF-8') as f:
                 json.dump(json_dict, f)
 
-    def init_model(self):
+    def default_tool(self):
+        class MascotLangChainToolInput(BaseModel):
+            eyebrow: str = Field(description='眉 normal/troubled/angry/happy/serious のどれか')
+            eyes: str = Field(description='目 normal/closed/happy_closed/relaxed_closed/surprized/wink のどれか')
+
+        def mascot_langchain_tool_function(eyebrow: str, eyes: str) -> str:
+            self.recieved_states_data = {
+                'eyebrow': eyebrow,
+                'eyes': eyes
+            }
+            return 'Success.'
+
+        tool = StructuredTool.from_function(
+            func=mascot_langchain_tool_function,
+            name='change_face',
+            description='ユーザーの画面に映っている、あなたの表情を変更します',
+            args_schema=MascotLangChainToolInput,
+            #return_direct=True,
+        )
+
+        return tool
+
+    def init_model(self, tools):
         system_message = self.chatgpt_messages[0]['content']
-        tools = []
-        for ext in extension.extensions:
-            tools += ext.get_langchain_tools()
 
         if self.api_backend_name == 'HuggingFacePipeline':
             if os.path.exists(self.model_name):
@@ -310,34 +312,6 @@ class MascotLangChain:
         self.recieved_message = ''
         self.recieved_states_data = None
 
-        def recv(recv_str):
-            recv_str = copy.copy(recv_str)
-            end_pos = -1
-            if self.recieved_states_data is None:
-                end_count = 0
-                if FUNCTION_STR_START[0] in recv_str:
-                    if FUNCTION_STR_START in recv_str:
-                        while True:
-                            end_pos = recv_str.find(FUNCTION_STR_END, end_pos + 1)
-                            if end_pos == -1:
-                                break
-                            end_count += 1
-                            end_pos += 1
-                            if recv_str.count(FUNCTION_STR_START, 0, end_pos) == end_count:
-                                break
-                if end_pos != -1:
-                    start_json = recv_str[recv_str.find(FUNCTION_STR_START) + len(FUNCTION_STR_START):end_pos - 1]
-                    self.recieved_states_data = json.loads(start_json)
-            if end_pos != -1:
-                recv_str = recv_str[:recv_str.find(FUNCTION_STR_START)] + recv_str[end_pos + len(FUNCTION_STR_END):]
-            elif FUNCTION_STR_START in recv_str:
-                recv_str = recv_str[:recv_str.find(FUNCTION_STR_START)]
-            else:
-                splited = recv_str.split(FUNCTION_STR_START[0])
-                if len(splited) > 1 and len(splited[-1]) <= len(FUNCTION_STR_START) - 1 and splited[-1] in FUNCTION_STR_START[1:]:
-                    recv_str = recv_str[:recv_str.rfind(FUNCTION_STR_START[0])]
-            self.recieved_message = recv_str
-
         def invoke():
             #self.lock()
             recieved_message = ''
@@ -360,7 +334,7 @@ class MascotLangChain:
                     for chunk in response:
                         if 'output' in chunk:
                             recieved_message += chunk['output']
-                            recv(recieved_message)
+                            self.recieved_message = recieved_message
                             if 'thread_id' in chunk:
                                 self.thread_id = chunk['thread_id']
                         #if condition():
@@ -374,7 +348,7 @@ class MascotLangChain:
                     )
                     for chunk in response:
                         recieved_message += chunk
-                        recv(recieved_message)
+                        self.recieved_message = recieved_message
                         #if condition():
                         #    break
             self.chatgpt_messages.append({"role": "user", "content": content})
