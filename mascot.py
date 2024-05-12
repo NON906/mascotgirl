@@ -355,6 +355,10 @@ if __name__ == "__main__":
             except requests.exceptions.ConnectionError:
                 res = None
 
+    if not args.ignore_extensions:
+        for ext in extension.extensions:
+            ext.init(main_settings)
+
     mascot_chatgpt = None
     if args.chat_backend == 'OpenAI':
         from src.mascot_chatgpt import MascotChatGpt
@@ -395,10 +399,6 @@ if __name__ == "__main__":
         mascot_chatgpt.init_model()
 
     main_settings.mascot_chatgpt = mascot_chatgpt
-    
-    if not args.ignore_extensions:
-        for ext in extension.extensions:
-            ext.init(main_settings)
 
     http_app = FastAPI()
     http_router = APIRouter()

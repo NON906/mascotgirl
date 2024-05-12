@@ -22,12 +22,13 @@ from langchain_community.llms import LlamaCpp
 from langchain_core.runnables.passthrough import RunnablePick
 from langchain.agents.openai_assistant import OpenAIAssistantRunnable
 from langchain_core.output_parsers import StrOutputParser
+from langchain.agents import AgentExecutor
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, BitsAndBytesConfig, StoppingCriteria, StoppingCriteriaList
 from huggingface_hub import snapshot_download, hf_hub_download
 from typing import Optional, List, Any
 from contextlib import redirect_stdout
 
-#from src import extension
+from src import extension
 
 
 class NewTemplateMessagesPrompt(StringPromptTemplate):
@@ -180,6 +181,9 @@ class MascotLangChain:
 
     def init_model(self):
         system_message = self.chatgpt_messages[0]['content']
+        tools = []
+        for ext in extension.extensions:
+            tools += ext.get_langchain_tools()
 
         if self.api_backend_name == 'HuggingFacePipeline':
             if os.path.exists(self.model_name):
@@ -263,15 +267,21 @@ class MascotLangChain:
                     json_dict = json.load(f)
                 agent = OpenAIAssistantRunnable(
                     assistant_id=json_dict[self.chara_name],
-                    as_agent=False,
+                    as_agent=True,
                 )
+
+                if os.path.isfile(os.path.join(current_path, 'openai_assistant_threads.json')):
+                    with open(os.path.join(current_path, 'openai_assistant_threads.json'), 'r', encoding='UTF-8') as f:
+                        json_dict = json.load(f)
+                        if self.chara_name in json_dict.keys():
+                            self.thread_id = json_dict[self.chara_name]
             except:
                 agent = OpenAIAssistantRunnable.create_assistant(
                     name="mascotgirl " + self.chara_name,
                     instructions=system_message,
-                    tools=[],
+                    tools=tools,
                     model=self.model_name,
-                    as_agent=False,
+                    as_agent=True,
                 )
                 if json_dict is None:
                     json_dict = {}
@@ -279,24 +289,12 @@ class MascotLangChain:
                 with open(os.path.join(current_path, 'openai_assistant.json'), 'w', encoding='UTF-8') as f:
                     json.dump(json_dict, f)
             
-            if os.path.isfile(os.path.join(current_path, 'openai_assistant_threads.json')):
-                with open(os.path.join(current_path, 'openai_assistant_threads.json'), 'r', encoding='UTF-8') as f:
-                    json_dict = json.load(f)
-                    if self.chara_name in json_dict.keys():
-                        self.thread_id = json_dict[self.chara_name]
+            agent_executor = AgentExecutor(agent=agent, tools=tools)
             
-            self.chain = agent
+            self.chain = agent_executor
 
     def send_to_chatgpt(self, content, write_log=True):
         system_messages = self.chatgpt_messages[0]['content']
-        #all_funcs = self.chatgpt_functions
-        #for ext in extension.extensions:
-        #    funcs = ext.get_chatgpt_functions()
-        #    if funcs is not None:
-        #        all_funcs = all_funcs + funcs
-        #    mes = ext.get_chatgpt_system_message()
-        #    if mes is not None:
-        #        system_messages += '\n' + mes
 
         history = ChatMessageHistory()
         for mes in self.chatgpt_messages[1:]:
@@ -343,8 +341,8 @@ class MascotLangChain:
         def invoke():
             #self.lock()
             recieved_message = ''
-            #with redirect_stdout(sys.stderr):
-            if True:
+            with redirect_stdout(sys.stderr):
+            #if True:
                 if self.api_backend_name == 'OpenAIAssistant':
                     if self.thread_id is None:
                         response = self.chain.stream({
@@ -360,13 +358,12 @@ class MascotLangChain:
                         #config={'callbacks': [ConsoleCallbackHandler()]}
                         )
                     for chunk_parent in response:
-                        for chunk in chunk_parent:
-                            for item in chunk.content:
-                                recieved_message += item.text.value
-                            recv(recieved_message)
-                            self.thread_id = chunk.thread_id
-                    #    if condition():
-                    #        break
+                        with redirect_stdout(sys.stderr):
+                            print(chunk_parent)
+                            for chunk in chunk_parent:
+                                recieved_message += chunk
+                                recv(recieved_message)
+                    #self.thread_id = chunk_parent['actions'][0].thread_id
                     #if condition():
                     #    break
                 else:
@@ -412,8 +409,8 @@ class MascotLangChain:
             self.chatgpt_messages = self.chatgpt_messages[:-2]
             if write_log:
                 self.write_log()
-            #for ext in extension.extensions:
-            #    ext.remove_last_conversation()
+            for ext in extension.extensions:
+                ext.remove_last_conversation()
 
     def get_model_name(self):
         return self.model_name

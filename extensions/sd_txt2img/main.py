@@ -10,6 +10,10 @@ import cv2
 import numpy
 import base64
 import subprocess
+from typing import Optional
+
+from langchain.pydantic_v1 import BaseModel, Field
+from langchain.tools import StructuredTool
 
 from src import extension
 import image_setting
@@ -182,6 +186,25 @@ There is no memory function, so please carry over the prompts from past conversa
         if self.__is_show and self._generate_prompt is not None and self._generate_prompt != '':
             return '* The generated image by the following prompt is displayed.\n  ' + self._generate_prompt
         return None
+
+    def get_langchain_tools(self):
+        class ToolInput(BaseModel):
+            prompt: str = Field(description='Prompt for generate image. Prompt is comma separated keywords such as "1girl, school uniform, red ribbon". If it is not in English, please translate it into English (lang:en).')
+
+        def tool_function(prompt: str) -> str:
+            self.recv_function(None, chatgpt_functions["name"], {"prompt": prompt})
+            return 'Success.'
+
+        chatgpt_functions = self.get_chatgpt_functions()
+        tool = StructuredTool.from_function(
+            func=tool_function,
+            name=chatgpt_functions[0]["name"],
+            description=chatgpt_functions[0]["description"],
+            args_schema=ToolInput,
+            return_direct=True,
+        )
+
+        return [tool, ]
 
     def thread_func(self):
         result_json = self.txt2img_thread_func()
@@ -387,6 +410,57 @@ The following are included from the beginning:
             return '* Background image is generated the following prompt.\n  ' + self.__background_prompt + '\n'
         return None
 
+    def get_langchain_tools(self):
+        class ToolInput(BaseModel):
+            character_prompt: str = Field(description='''Prompt for generate character image.
+The following are included from the beginning:
+    solo, standing, simple background, no background, solid color background, looking at viewer, open mouth, from front
+''')
+
+        def tool_function(character_prompt: str) -> str:
+            self.recv_function(None, chatgpt_functions[0]["name"], {"character_prompt": character_prompt})
+            return 'Success.'
+
+        chatgpt_functions = self.get_chatgpt_functions()
+        tool = StructuredTool.from_function(
+            func=tool_function,
+            name="sd_generate_character",
+            description="""Generate character image from prompt by Stable Diffusion.
+This character is your alter ego.
+Please call it when your appearance changes by saying something like "change your outfit".
+Prompt is comma separated keywords such as "1girl, school uniform, red ribbon". If it is not in English, please translate it into English (lang:en).
+
+Sentences cannot be generated.
+There is no memory function, so please carry over the prompts from past conversations.
+""",
+            args_schema=ToolInput,
+            return_direct=True,
+        )
+
+        class BackToolInput(BaseModel):
+            background_prompt: str = Field(description='Prompt for generate background image.')
+
+        def back_tool_function(background_prompt: str) -> str:
+            self.recv_function(None, chatgpt_functions[0]["name"], {"background_prompt": background_prompt})
+            return 'Success.'
+
+        back_tool = StructuredTool.from_function(
+            func=back_tool_function,
+            name="sd_generate_background",
+            description="""Generate background image from prompt by Stable Diffusion.
+The background is based on your location.
+Please call it when your location changes by saying something like "move location".
+Prompt is comma separated keywords such as "outdoor, sea". If it is not in English, please translate it into English (lang:en).
+
+Sentences cannot be generated.
+There is no memory function, so please carry over the prompts from past conversations.
+""",
+            args_schema=BackToolInput,
+            return_direct=True,
+        )
+
+        return [tool, back_tool]
+
     def thread_func(self):
         global global_loaded_json
 
@@ -452,11 +526,11 @@ The following are included from the beginning:
             return None
 
         start_run = not self.__is_generate
-        if 'character_prompt' in result:
+        if 'character_prompt' in result and self.__loaded_json['character_enabled']:
             if self.__character_prompt != result['character_prompt']:
                 self.__character_prompt = result['character_prompt']
                 start_run = False
-        if 'background_prompt' in result:
+        if 'background_prompt' in result and self.__loaded_json['background_enabled']:
             if self.__background_prompt != result['background_prompt']:
                 self.__background_prompt = result['background_prompt']
                 start_run = False
@@ -474,8 +548,10 @@ The following are included from the beginning:
             return None
         if not self.__is_generate:
             self.__is_generate = True
-            self.__character_prompt = result['character_prompt']
-            self.__background_prompt = result['background_prompt']
+            if self.__loaded_json['character_enabled'] and 'character_prompt' in result:
+                self.__character_prompt = result['character_prompt']
+            if self.__loaded_json['background_enabled'] and 'background_prompt' in result:
+                self.__background_prompt = result['background_prompt']
             self.__thread = threading.Thread(target=self.thread_func)
             self.__thread.start()
         if 'message' in result:

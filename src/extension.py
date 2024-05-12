@@ -18,6 +18,9 @@ class Extension:
     def get_chatgpt_system_message(self):
         return None
 
+    def get_langchain_tools(self):
+        return []
+
     def recv_message_streaming(self, messages, streaming_message):
         pass
 
