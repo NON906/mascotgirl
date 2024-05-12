@@ -201,7 +201,7 @@ There is no memory function, so please carry over the prompts from past conversa
             name=chatgpt_functions[0]["name"],
             description=chatgpt_functions[0]["description"],
             args_schema=ToolInput,
-            return_direct=True,
+            #return_direct=True,
         )
 
         return [tool, ]
@@ -434,7 +434,7 @@ Sentences cannot be generated.
 There is no memory function, so please carry over the prompts from past conversations.
 """,
             args_schema=ToolInput,
-            return_direct=True,
+            #return_direct=True,
         )
 
         class BackToolInput(BaseModel):
@@ -456,7 +456,7 @@ Sentences cannot be generated.
 There is no memory function, so please carry over the prompts from past conversations.
 """,
             args_schema=BackToolInput,
-            return_direct=True,
+            #return_direct=True,
         )
 
         return [tool, back_tool]

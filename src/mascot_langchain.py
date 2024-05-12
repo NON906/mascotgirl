@@ -341,8 +341,8 @@ class MascotLangChain:
         def invoke():
             #self.lock()
             recieved_message = ''
-            with redirect_stdout(sys.stderr):
-            #if True:
+            #with redirect_stdout(sys.stderr):
+            if True:
                 if self.api_backend_name == 'OpenAIAssistant':
                     if self.thread_id is None:
                         response = self.chain.stream({
@@ -357,15 +357,14 @@ class MascotLangChain:
                         },
                         #config={'callbacks': [ConsoleCallbackHandler()]}
                         )
-                    for chunk_parent in response:
-                        with redirect_stdout(sys.stderr):
-                            print(chunk_parent)
-                            for chunk in chunk_parent:
-                                recieved_message += chunk
-                                recv(recieved_message)
-                    #self.thread_id = chunk_parent['actions'][0].thread_id
-                    #if condition():
-                    #    break
+                    for chunk in response:
+                        if 'output' in chunk:
+                            recieved_message += chunk['output']
+                            recv(recieved_message)
+                            if 'thread_id' in chunk:
+                                self.thread_id = chunk['thread_id']
+                        #if condition():
+                        #    break
                 else:
                     response = self.chain.stream({
                         'input': content,
