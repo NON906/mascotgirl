@@ -20,7 +20,10 @@ python mascot.py ^
     --chatgpt_log "chatgpt.json" ^
     --chatgpt_log_replace ^
     --image_pipe_name "\\.\pipe\mascot_image_pipe" ^
-    --run_command "client\MascotGirl_Client.exe -start_local"
+    --framerate 30 ^
+    --run_command_reload ^
+    --run_command "ffmpeg\ffmpeg -y -f rawvideo -pix_fmt rgba -s 512x512 -framerate 30 -thread_queue_size 8192 -i \\.\pipe\mascot_image_pipe -f s16le -ar __AUDIO_FREQ__ -ac 1 -thread_queue_size 8192 -i \\.\pipe\mascot_pipe -c:v copy -c:a copy -f matroska tcp://localhost:55009/stream?listen" ^
+    --run_command2 "client\MascotGirl_Client.exe -start_local"
 cd ..
 call %~dp0bin\Miniconda3\condabin\conda deactivate
 endlocal

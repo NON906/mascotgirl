@@ -199,6 +199,7 @@ if __name__ == "__main__":
     parser.add_argument('--bert_vits2_model_file_name')
     parser.add_argument('--run_command')
     parser.add_argument('--run_command_reload', action='store_true')
+    parser.add_argument('--run_command2')
     parser.add_argument('--ngrok_auth_token')
     parser.add_argument('--show_qrcode', action='store_true')
     for ext in extension.extensions:
@@ -218,7 +219,7 @@ if __name__ == "__main__":
         with open(os.path.join(dir_path, chara_dir[chara_id], 'setting.json'), encoding='utf-8') as f:
             chara_dict = json.load(f)
         for k, v in chara_dict.items():
-            if k == 'run_command' or k == 'run_command_reload':
+            if k == 'run_command' or k == 'run_command_reload' or k == 'run_command2':
                 continue
             if k == 'chat_repo_id' or k == 'chat_file_name':
                 new_v = os.path.join(dir_path, chara_dir[chara_id], v)
@@ -902,6 +903,9 @@ if __name__ == "__main__":
             command_thread.start()
         else:
             subprocess.Popen(args.run_command)
+
+    if args.run_command2 is not None:
+        subprocess.Popen(args.run_command2)
 
     http_app.include_router(http_router)
     #http_app.mount("/dash", StaticFiles(directory="dash"), name="dash")
