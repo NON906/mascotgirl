@@ -13,11 +13,10 @@ call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
 cd mascotgirl
 python mascot.py ^
     --select_chara ^
-    --ignore_extensions ^
+    __IGNORE_EXTENSIONS__ ^
     --voicevox_url "" ^
-    --chat_backend "OpenAIAssistant" ^
-    --chatgpt_apikey "__CHATGPT_APIKEY__" ^
-    --chatgpt_model_name "__CHATGPT_MODEL_NAME__" ^
+    --chat_backend "__CHAT_BACKEND__" ^
+    __CHAT_OPTION__ ^
     --chatgpt_log "chatgpt.json" ^
     --chatgpt_log_replace ^
     --image_pipe_name "\\.\pipe\mascot_image_pipe" ^
@@ -35,11 +34,10 @@ call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
 cd mascotgirl
 python mascot.py ^
     --select_chara ^
-    --ignore_extensions ^
+    __IGNORE_EXTENSIONS__ ^
     --voicevox_url "" ^
-    --chat_backend "OpenAIAssistant" ^
-    --chatgpt_apikey "__CHATGPT_APIKEY__" ^
-    --chatgpt_model_name "__CHATGPT_MODEL_NAME__" ^
+    --chat_backend "__CHAT_BACKEND__" ^
+    __CHAT_OPTION__ ^
     --ngrok_auth_token "__NGROK_AUTH_TOKEN__" ^
     --show_qrcode ^
     --chatgpt_log "chatgpt.json" ^
@@ -89,15 +87,41 @@ endlocal
         else:
             return True
 
-    select = ''
-    while select is None or select == '':
-        select = input('OpenAIのAPIキーを入力してください: \n')
-    replace('__CHATGPT_APIKEY__', select)
+    chat_backend_select = -1
+    while chat_backend_select < 1 or chat_backend_select > 2:
+        select = input('どのAPIを使用しますか？\n [1. OpenAI API (Assistant) / 2. Google Generative AI] (1): ')
+        if select is None or select == '' or int(select) == 1:
+            chat_backend_select = 1
+        elif int(select) <= 2:
+            chat_backend_select = int(select)
 
-    select = input('使用するOpenAIのモデル名を入力してください (gpt-3.5-turbo): \n')
-    if select is None or select == '':
-        select = 'gpt-3.5-turbo'
-    replace('__CHATGPT_MODEL_NAME__', select)
+    if chat_backend_select == 1:
+        replace('__CHAT_BACKEND__', 'OpenAIAssistant')
+
+        replace('__CHAT_OPTION__', '''--chatgpt_apikey "__CHATGPT_APIKEY__" ^
+    --chatgpt_model_name "__CHATGPT_MODEL_NAME__"''')
+
+        select = ''
+        while select is None or select == '':
+            select = input('OpenAIのAPIキーを入力してください: \n')
+        replace('__CHATGPT_APIKEY__', select)
+
+        select = input('使用するOpenAIのモデル名を入力してください (gpt-3.5-turbo): \n')
+        if select is None or select == '':
+            select = 'gpt-3.5-turbo'
+        replace('__CHATGPT_MODEL_NAME__', select)
+    else:
+        replace('__CHAT_BACKEND__', 'GoogleGenerativeAI')
+
+        select_apikey = ''
+        while select_apikey is None or select_apikey == '':
+            select_apikey = input('Google Generative AIのAPIキーを入力してください: \n')
+        
+        select = input('使用するAIのモデル名を入力してください (gemini-pro): \n')
+        if select is None or select == '':
+            select = 'gemini-pro'
+
+        replace('__CHAT_OPTION__', '--google_apikey "' + select_apikey + '" --google_model_name "' + select + '"')
 
     replace('__AUDIO_FREQ__', '44100')
 
@@ -110,6 +134,15 @@ endlocal
         if select is not None or select != '':
             replace('__NGROK_AUTH_TOKEN__', select)
             save_share_bat = True
+            break
+
+    while True:
+        select = input('拡張機能を有効にしますか？ [y/N]: ')
+        if select is None or select == '' or select == 'N' or select == 'n':
+            replace('__IGNORE_EXTENSIONS__', '--ignore_extensions')
+            break
+        elif select == 'Y' or select == 'y':
+            replace('__IGNORE_EXTENSIONS__', '')
             break
 
     if not '\r\n' in run_bat_content:

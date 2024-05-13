@@ -105,15 +105,3 @@ if __name__ == "__main__":
         else:
             continue
     """
-
-    _ = """
-    os.chdir('mascotgirl')
-    for dir_name in os.listdir('extensions_builtin'):
-        dir_path = os.path.join('extensions_builtin', dir_name)
-        if os.path.isdir(dir_path) and not os.path.isdir(os.path.join('extensions', dir_name)):
-            select = input('拡張機能 ' + dir_name + ' をインストールしますか？ [y/N]: ')
-            if select == 'Y' or select == 'y':
-                shutil.copytree(dir_path, os.path.join('extensions', dir_name))
-                install_extensions(dir_name)
-    os.chdir('..')
-    """
