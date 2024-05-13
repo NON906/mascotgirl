@@ -148,7 +148,7 @@ if __name__ == "__main__":
     parser.add_argument('--http_host', default='0.0.0.0')
     parser.add_argument('--http_port', type=int, default=55007)
     parser.add_argument('--http_log', default=os.devnull)
-    parser.add_argument('--chat_backend', choices=['OpenAIAssistant', 'LlamaCpp', 'OpenAI'], default='OpenAI')
+    parser.add_argument('--chat_backend', choices=['OpenAIAssistant', 'GoogleGenerativeAI', 'LlamaCpp', 'OpenAI'], default='OpenAI')
     parser.add_argument('--chatgpt_apikey')
     parser.add_argument('--chatgpt_setting')
     parser.add_argument('--chat_setting')
@@ -157,6 +157,9 @@ if __name__ == "__main__":
     parser.add_argument('--chatgpt_log_replace', action='store_true')
     parser.add_argument('--chat_log_replace', action='store_true')
     parser.add_argument('--chatgpt_model_name', default='gpt-3.5-turbo')
+    parser.add_argument('--google_apikey')
+    parser.add_argument('--google_model_name', default='gemini-pro')
+    parser.add_argument('--google_harm_block', choices=['LOW_AND_ABOVE', 'MEDIUM_AND_ABOVE', 'ONLY_HIGH', 'NONE'], default='NONE')
     parser.add_argument('--chat_repo_id')
     parser.add_argument('--chat_file_name')
     parser.add_argument('--chat_full_template', default='{system}\n\n{messages}')
@@ -388,7 +391,25 @@ if __name__ == "__main__":
             mascot_chatgpt = MascotLangChain(args.chatgpt_apikey)
             mascot_chatgpt.set_api_backend_name('OpenAIAssistant')
             mascot_chatgpt.load_model(args.chatgpt_model_name, chara_name=selected_chara_name)
-    
+        elif args.chat_backend == 'GoogleGenerativeAI':
+            from google.generativeai.types.safety_types import HarmBlockThreshold, HarmCategory
+            mascot_chatgpt = MascotLangChain(args.google_apikey)
+            mascot_chatgpt.set_api_backend_name('GoogleGenerativeAI')
+            mascot_chatgpt.load_model(args.google_model_name)
+            harm_block = HarmBlockThreshold.BLOCK_NONE
+            if args.google_harm_block == 'LOW_AND_ABOVE':
+                harm_block = HarmBlockThreshold.LOW_AND_ABOVE
+            elif args.google_harm_block == 'MEDIUM_AND_ABOVE':
+                harm_block = HarmBlockThreshold.MEDIUM_AND_ABOVE
+            elif args.google_harm_block == 'ONLY_HIGH':
+                harm_block = HarmBlockThreshold.ONLY_HIGH
+            mascot_chatgpt.set_safety_settings({
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: harm_block,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: harm_block,
+                HarmCategory.HARM_CATEGORY_HARASSMENT: harm_block,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: harm_block,
+            })
+
         if args.chatgpt_setting is not None and os.path.isfile(args.chatgpt_setting):
             mascot_chatgpt.load_setting(args.chatgpt_setting)
         if not args.chatgpt_log_replace and args.chatgpt_log is not None:

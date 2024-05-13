@@ -10,7 +10,7 @@ import time
 import asyncio
 import torch
 
-from langchain.prompts import StringPromptTemplate, PromptTemplate
+from langchain.prompts import StringPromptTemplate, PromptTemplate, ChatPromptTemplate
 from langchain.memory import ChatMessageHistory
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 from langchain.schema import (
@@ -22,9 +22,10 @@ from langchain_community.llms import LlamaCpp
 from langchain_core.runnables.passthrough import RunnablePick
 from langchain.agents.openai_assistant import OpenAIAssistantRunnable
 from langchain_core.output_parsers import StrOutputParser
-from langchain.agents import AgentExecutor
+from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import StructuredTool
+from langchain_google_genai.chat_models import ChatGoogleGenerativeAI
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline, BitsAndBytesConfig, StoppingCriteria, StoppingCriteriaList
 from huggingface_hub import snapshot_download, hf_hub_download
 from typing import Optional, List, Any
@@ -111,6 +112,9 @@ class MascotLangChain:
         self.model_name = model_name
         self.file_name = file_name
         self.chara_name = chara_name
+
+    def set_safety_settings(self, safety_settings):
+        self.safety_settings = safety_settings
 
     def set_log(self, log):
         self.log_file_name = log
@@ -294,16 +298,46 @@ class MascotLangChain:
             agent_executor = AgentExecutor(agent=agent, tools=tools)
             
             self.chain = agent_executor
+        elif self.api_backend_name == 'GoogleGenerativeAI':        
+            llm = ChatGoogleGenerativeAI(
+                model=self.model_name,
+                safety_settings=self.safety_settings,
+                google_api_key=self.api_key
+            )
+
+            prompt = ChatPromptTemplate.from_messages(
+                [
+                    ("placeholder", "{history}"),
+                    ("placeholder", "{agent_scratchpad}"),
+                ]
+            )
+
+            agent = create_tool_calling_agent(llm, tools, prompt)
+            agent_executor = AgentExecutor(agent=agent, tools=tools)
+
+            self.chain = agent_executor
 
     def send_to_chatgpt(self, content, write_log=True):
         system_messages = self.chatgpt_messages[0]['content']
 
         history = ChatMessageHistory()
-        for mes in self.chatgpt_messages[1:]:
-            if mes['role'] == 'user':
-                history.add_user_message(mes['content'])
-            elif mes['role'] == 'assistant':
-                history.add_ai_message(mes['content'])
+        if self.api_backend_name == 'GoogleGenerativeAI':
+            if len(self.chatgpt_messages) <= 1:
+                history.add_user_message(system_messages + '\n---\n' + content)
+            else:
+                history.add_user_message(system_messages + '\n---\n' + self.chatgpt_messages[1]['content'])
+                for mes in self.chatgpt_messages[2:]:
+                    if mes['role'] == 'user':
+                        history.add_user_message(mes['content'])
+                    elif mes['role'] == 'assistant':
+                        history.add_ai_message(mes['content'])
+                history.add_user_message(content)
+        else:
+            for mes in self.chatgpt_messages[1:]:
+                if mes['role'] == 'user':
+                    history.add_user_message(mes['content'])
+                elif mes['role'] == 'assistant':
+                    history.add_ai_message(mes['content'])
 
         if self.chain is None:
             self.init_model()
@@ -337,6 +371,18 @@ class MascotLangChain:
                             self.recieved_message = recieved_message
                             if 'thread_id' in chunk:
                                 self.thread_id = chunk['thread_id']
+                        #if condition():
+                        #    break
+                elif self.api_backend_name == 'GoogleGenerativeAI':
+                    response = self.chain.stream({
+                        'history': history.messages
+                    },
+                    #config={'callbacks': [ConsoleCallbackHandler()]}
+                    )
+                    for chunk in response:
+                        if 'output' in chunk:
+                            recieved_message += chunk['output']
+                            self.recieved_message = recieved_message
                         #if condition():
                         #    break
                 else:
