@@ -347,7 +347,7 @@ class MascotLangChain:
         self.recieved_states_data = None
 
         def invoke():
-            #self.lock()
+            self.lock()
             recieved_message = ''
             #with redirect_stdout(sys.stderr):
             if True:
@@ -399,7 +399,7 @@ class MascotLangChain:
                         #    break
             self.chatgpt_messages.append({"role": "user", "content": content})
             self.chatgpt_messages.append({"role": "assistant", "content": self.recieved_message})
-            #self.unlock()
+            self.unlock()
             if write_log:
                 self.write_log()
             self.is_finished = True
