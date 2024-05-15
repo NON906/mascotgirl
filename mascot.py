@@ -524,18 +524,22 @@ if __name__ == "__main__":
 
             _, response_message = mascot_chatgpt.get_message()
 
-            s = re.sub(r'([。\.！\!？\?]+)', r'\1\n', response_message)
-            messages = s.splitlines()[len(mouth_queries):]
-            if not is_finished:
-                if len(messages) <= 0:
-                    response_message = ''
-                    messages = []
-                else:
-                    response_message = response_message[:-len(messages[-1])]
-                    messages = messages[:-1]
-
             if args.bert_vits2_model is None:
+                s = re.sub(r'([。\.！\!？\?\n]+)', r'\1\n', response_message)
+                messages = s.splitlines()[len(mouth_queries):]
+                if not is_finished:
+                    if len(messages) <= 0:
+                        response_message = ''
+                        messages = []
+                    else:
+                        response_message = response_message[:-len(messages[-1])]
+                        messages = messages[:-1]
+
                 for mes in messages:
+                    if mes == '':
+                        recv_response_message += '\n'
+                        continue
+
                     vc_input = b''
 
                     res1 = requests.post(args.voicevox_url + '/audio_query', params = {'text': mes, 'speaker': speaker_id})
@@ -577,6 +581,30 @@ if __name__ == "__main__":
                     recv_time_length = time_length
                     recv_response_message = response_message[:len(recv_response_message) + len(mes)]
             else:
+                s = re.sub(r'([。\.！\!？\?\n]+)', r'\1\n', response_message)
+                messages = s.splitlines()
+
+                new_messages = ['']
+                for mes in messages:
+                    if mes == '':
+                        new_messages[-1] += '\n'
+                        new_messages.append('')
+                        continue
+                    if len(mes) <= 100 and len(new_messages[-1]) + len(mes) > 100:
+                        new_messages.append('')
+                    new_messages[-1] += mes
+                if len(new_messages) <= 1 and new_messages[0] == '':
+                    continue
+                messages = new_messages[len(mouth_queries):]
+
+                if not is_finished:
+                    if len(messages) <= 0:
+                        response_message = ''
+                        messages = []
+                    else:
+                        response_message = response_message[:-len(messages[-1])]
+                        messages = messages[:-1]
+
                 for mes in messages:
                     vc_output = b''
                     g2p_res = requests.post('http://localhost:8000/api/g2p', data=json.dumps({'text': mes}))
