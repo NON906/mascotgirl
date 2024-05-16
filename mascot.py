@@ -581,66 +581,125 @@ if __name__ == "__main__":
                     recv_time_length = time_length
                     recv_response_message = response_message[:len(recv_response_message) + len(mes)]
             else:
-                s = re.sub(r'([。\.！\!？\?\n]+)', r'\1\n', response_message)
-                messages = s.splitlines()
+                messages = []
+                ignore_labels = []
+                message = response_message.replace('（', '(').replace('）', ')')
+                if '(' in message and ')' in message: 
+                    before, inner = message.split('(', 1)
+                    inner, after = inner.rsplit(')', 1)
+                    if before != '':
+                        add_messages = re.sub(r'([。\.！\!？\?\n]+)', r'\1\n', before).splitlines()
+                        messages += add_messages
+                        for _ in add_messages:
+                            ignore_labels.append(False)
+                    messages.append('(' + inner + ')')
+                    ignore_labels.append(True)
+                    if after != '':
+                        add_messages = re.sub(r'([。\.！\!？\?\n]+)', r'\1\n', after).splitlines()
+                        messages += add_messages
+                        for _ in add_messages:
+                            ignore_labels.append(False)
+                else:
+                    messages = [response_message, ]
+                    ignore_labels.append(False)
 
                 new_messages = ['']
-                for mes in messages:
-                    if mes == '':
-                        new_messages[-1] += '\n'
+                new_ignore_labels = [False]
+                for loop, mes in enumerate(messages):
+                    if ignore_labels[loop]:
+                        if new_messages[-1] == '':
+                            new_messages = new_messages[:-1]
+                            new_ignore_labels = new_ignore_labels[:-1]
+                        new_messages.append(mes)
+                        new_ignore_labels.append(True)
                         new_messages.append('')
+                        new_ignore_labels.append(False)
+                        continue
+                    if mes == '':
+                        if new_messages[-1] == '':
+                            new_messages = new_messages[:-1]
+                            new_ignore_labels = new_ignore_labels[:-1]
+                        new_messages.append('\n')
+                        new_ignore_labels.append(True)
+                        new_messages.append('')
+                        new_ignore_labels.append(False)
                         continue
                     if len(mes) <= 100 and len(new_messages[-1]) + len(mes) > 100:
                         new_messages.append('')
+                        new_ignore_labels.append(False)
                     new_messages[-1] += mes
-                if len(new_messages) <= 1 and new_messages[0] == '':
-                    continue
-                messages = new_messages[len(mouth_queries):]
+                messages = new_messages
+                ignore_labels = new_ignore_labels
+
+                if len(messages) > 0 and messages[-1] == '':
+                    messages = messages[:-1]
+                    ignore_labels = ignore_labels[:-1]
 
                 if not is_finished:
                     if len(messages) <= 0:
                         response_message = ''
                         messages = []
+                        ignore_labels = []
                     else:
                         response_message = response_message[:-len(messages[-1])]
                         messages = messages[:-1]
+                        ignore_labels = ignore_labels[:-1]
 
-                for mes in messages:
-                    vc_output = b''
-                    g2p_res = requests.post('http://localhost:8000/api/g2p', data=json.dumps({'text': mes}))
-                    synth_data = {
-                        'model': args.bert_vits2_model,
-                        'modelFile': os.path.join('model_assets', args.bert_vits2_model, args.bert_vits2_model_file_name),
-                        'text': mes,
-                        'moraToneList': g2p_res.json(),
-                        'silenceAfter': 0.08
-                    }
-                    synth_res = requests.post('http://localhost:8000/api/synthesis', data=json.dumps(synth_data))
+                messages = messages[len(mouth_queries):]
+                ignore_labels = ignore_labels[len(mouth_queries):]
 
-                    file_in_memory = BytesIO(synth_res.content)
-                    with wave.open(file_in_memory, 'rb') as wav_file:
-                        vc_output += wav_file.readframes(wav_file.getnframes())
-
-                    audio_pipe.add_bytes(vc_output)
-
-                    mouth_queries.append({
-                        'prePhonemeLength': 0.0,
-                        'postPhonemeLength': synth_data['silenceAfter']
-                    })
-
-                    if recv_start_time == 0.0:
-                        recv_start_time = time.perf_counter()
+                for loop, mes in enumerate(messages):
+                    if ignore_labels[loop]:
+                        length = len(mes) * 60 / 800
+                        #audio_pipe.add_bytes(bytes(int(44100 * length) * 2))
+                        mouth_queries.append({
+                            'prePhonemeLength': 0.0,
+                            'postPhonemeLength': 0.0,
+                            'blank': True,
+                        })
+                        if recv_start_time == 0.0:
+                            recv_start_time = time.perf_counter()
+                        else:
+                            now_time = time.perf_counter() - recv_start_time
+                            if time_length < now_time:
+                                time_length = now_time
+                        time_length += length
                     else:
-                        now_time = time.perf_counter() - recv_start_time
-                        if time_length < now_time:
-                            time_length = now_time
-                    time_length += animation_mouth.set_by_mora_tone_list(synth_data['moraToneList'], vc_output, synth_data['silenceAfter'])
-                    animation_eyes.set_morph(response_eyes, time_length, is_start)
+                        vc_output = b''
+                        g2p_res = requests.post('http://localhost:8000/api/g2p', data=json.dumps({'text': mes}))
+                        synth_data = {
+                            'model': args.bert_vits2_model,
+                            'modelFile': os.path.join('model_assets', args.bert_vits2_model, args.bert_vits2_model_file_name),
+                            'text': mes,
+                            'moraToneList': g2p_res.json(),
+                            'silenceAfter': 0.08
+                        }
+                        synth_res = requests.post('http://localhost:8000/api/synthesis', data=json.dumps(synth_data))
 
-                    if response_eyebrow == 'normal':
-                        mascot_image.set_eyebrow(0, 0.0, 0.0)
-                    else:
-                        mascot_image.set_eyebrow(response_eyebrow, 1.0, 1.0)
+                        file_in_memory = BytesIO(synth_res.content)
+                        with wave.open(file_in_memory, 'rb') as wav_file:
+                            vc_output += wav_file.readframes(wav_file.getnframes())
+
+                        audio_pipe.add_bytes(vc_output)
+
+                        mouth_queries.append({
+                            'prePhonemeLength': 0.0,
+                            'postPhonemeLength': synth_data['silenceAfter']
+                        })
+
+                        if recv_start_time == 0.0:
+                            recv_start_time = time.perf_counter()
+                        else:
+                            now_time = time.perf_counter() - recv_start_time
+                            if time_length < now_time:
+                                time_length = now_time
+                        time_length += animation_mouth.set_by_mora_tone_list(synth_data['moraToneList'], vc_output, synth_data['silenceAfter'])
+                        animation_eyes.set_morph(response_eyes, time_length, is_start)
+
+                        if response_eyebrow == 'normal':
+                            mascot_image.set_eyebrow(0, 0.0, 0.0)
+                        else:
+                            mascot_image.set_eyebrow(response_eyebrow, 1.0, 1.0)
 
                     recv_mouth_queries = mouth_queries
                     recv_time_length = time_length
@@ -659,6 +718,7 @@ if __name__ == "__main__":
                 'message': '',
                 'start': 0.0,
                 'end': 0.0,
+                'blank': False,
                 'finished': False
                 })
             return JSONResponse(content=json_compatible_item_data)
@@ -668,6 +728,7 @@ if __name__ == "__main__":
                 'message': recv_response_message,
                 'start': recv_mouth_queries[0]['prePhonemeLength'],
                 'end': recv_time_length - recv_mouth_queries[-1]['postPhonemeLength'],
+                'blank': 'blank' in recv_mouth_queries[0],
                 'finished': recv_is_finished
                 })
             return JSONResponse(content=json_compatible_item_data)
