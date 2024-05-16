@@ -581,12 +581,16 @@ if __name__ == "__main__":
                     recv_time_length = time_length
                     recv_response_message = response_message[:len(recv_response_message) + len(mes)]
             else:
+                # カッコ内かどうか、文字列の分割
                 messages = []
                 ignore_labels = []
                 message = response_message.replace('（', '(').replace('）', ')')
-                if '(' in message and ')' in message: 
+                while '(' in message and ')' in message:
                     before, inner = message.split('(', 1)
-                    inner, after = inner.rsplit(')', 1)
+                    inner, after = inner.split(')', 1)
+                    while inner.count('(') == inner.count(')') and ')' in after:
+                        add_inner, after = after.split(')', 1)
+                        inner += ')' + add_inner
                     if before != '':
                         add_messages = re.sub(r'([。\.！\!？\?\n]+)', r'\1\n', before).splitlines()
                         messages += add_messages
@@ -594,15 +598,14 @@ if __name__ == "__main__":
                             ignore_labels.append(False)
                     messages.append('(' + inner + ')')
                     ignore_labels.append(True)
-                    if after != '':
-                        add_messages = re.sub(r'([。\.！\!？\?\n]+)', r'\1\n', after).splitlines()
-                        messages += add_messages
-                        for _ in add_messages:
-                            ignore_labels.append(False)
-                else:
-                    messages = [response_message, ]
-                    ignore_labels.append(False)
+                    message = after
+                if message != '':
+                    add_messages = re.sub(r'([。\.！\!？\?\n]+)', r'\1\n', message).splitlines()
+                    messages += add_messages
+                    for _ in add_messages:
+                        ignore_labels.append(False)
 
+                # 結合
                 new_messages = ['']
                 new_ignore_labels = [False]
                 for loop, mes in enumerate(messages):
