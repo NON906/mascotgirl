@@ -14,7 +14,7 @@ import cv2
 import json
 import argparse
 import uvicorn
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, WebSocket
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -31,6 +31,7 @@ else:
 import wave
 import subprocess
 import shutil
+from starlette.websockets import WebSocketDisconnect
 
 from src.mascot_image import MascotImage
 from src.animation_mouth import AnimationMouth
@@ -428,6 +429,8 @@ if __name__ == "__main__":
 
     http_app = FastAPI()
     http_router = APIRouter()
+    websocket_targets = {}
+    websocket_targets_basemodels = {}
 
     mascot_image = main_settings.mascot_image
     animation_mouth = AnimationMouth(mascot_image)
@@ -844,6 +847,24 @@ if __name__ == "__main__":
             })
         return JSONResponse(content=json_compatible_item_data)
     http_router.add_api_route("/get_audio_freq", http_get_audio_freq, methods=["GET"])
+
+    @http_app.websocket("/ws")
+    async def websocket_endpoint(websocket: WebSocket):
+        await websocket.accept()
+        try:
+            while True:
+                data = await websocket.receive_text()
+                #print(data, file=sys.stderr)
+                json_dict = json.loads(data)
+                if json_dict["target"] == "body_morph":
+                    global mascot_image
+                    content = json.loads(json_dict["content"])
+                    mascot_image.set_body_morph(content["iris_rotation_x"], content["iris_rotation_y"], content["head_x"], content["head_y"], content["body_y"])
+                    send_content = ""
+                send_text = json.dumps({"target": json_dict["target"], "content": send_content})
+                await websocket.send_text(send_text)
+        except WebSocketDisconnect:
+            pass
 
     stop_main_thread = False
 
