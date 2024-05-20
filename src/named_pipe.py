@@ -78,16 +78,19 @@ class NamedPipeWindows:
             raise BrokenPipeError()
 
     def force_close(self):
-        handle = win32file.CreateFile(
-            self.pipe_path,
-            0,
-            0,
-            None,
-            win32file.OPEN_EXISTING,
-            0,
-            None
-        )
-        win32file.CloseHandle(handle)
+        try:
+            handle = win32file.CreateFile(
+                self.pipe_path,
+                0,
+                0,
+                None,
+                win32file.OPEN_EXISTING,
+                0,
+                None
+            )
+            win32file.CloseHandle(handle)
+        except pywintypes.error:
+            pass
 
 class NamedPipeUnix:
     pipe_path = None

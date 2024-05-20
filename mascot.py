@@ -893,7 +893,7 @@ if __name__ == "__main__":
                 while not stop_main_thread:
                     animation_mouth.update(1.0 / args.framerate)
                     animation_eyes.update(1.0 / args.framerate)
-                    animation_breathing.update(1.0 / args.framerate)
+                    #animation_breathing.update(1.0 / args.framerate)
                     span = next_time - time.perf_counter()
                     if span > 0.0:
                         mascot_image.update()
