@@ -7,8 +7,8 @@ if __name__ == "__main__":
 
     run_bat_content = r'''@echo off
 setlocal
-set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts;%PATH%
-call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
+__SET_PATH__
+call __CONDA__ activate mascotgirl
 cd mascotgirl
 python mascot.py ^
     --select_chara ^
@@ -24,14 +24,14 @@ python mascot.py ^
     --run_command "ffmpeg\ffmpeg -y -f rawvideo -pix_fmt rgba -s 512x512 -framerate 30 -thread_queue_size 8192 -i \\.\pipe\mascot_image_pipe -f s16le -ar __AUDIO_FREQ__ -ac 1 -thread_queue_size 8192 -i \\.\pipe\mascot_pipe -c:v copy -c:a copy -f matroska tcp://localhost:55009/stream?listen" ^
     --run_command2 "client\MascotGirl_Client.exe -start_local"
 cd ..
-call %~dp0bin\Miniconda3\condabin\conda deactivate
+call __CONDA__ deactivate
 endlocal
 '''
 
     run_share_bat_content = r'''@echo off
 setlocal
-set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts;%PATH%
-call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
+__SET_PATH__
+call __CONDA__ activate mascotgirl
 cd mascotgirl
 python mascot.py ^
     --select_chara ^
@@ -48,7 +48,7 @@ python mascot.py ^
     --run_command_reload ^
     --run_command "ffmpeg\ffmpeg -y -f rawvideo -pix_fmt rgba -s 512x512 -framerate 30 -thread_queue_size 8192 -i \\.\pipe\mascot_image_pipe -f s16le -ar __AUDIO_FREQ__ -ac 1 -thread_queue_size 8192 -i \\.\pipe\mascot_pipe -auto-alt-ref 0 -deadline realtime -quality realtime -cpu-used 4 -row-mt 1 -crf 30 -b:v 0 -pass 1 -c:v libvpx-vp9 -c:a libopus -f matroska tcp://0.0.0.0:55009/stream?listen"
 cd ..
-call %~dp0bin\Miniconda3\condabin\conda deactivate
+call __CONDA__ deactivate
 endlocal
 '''
 
@@ -57,13 +57,37 @@ echo NOTE:
 echo このバッチファイルは「litagin02/Style-Bert-VITS2」の学習用エディタを起動するだけのものです。
 echo NON906作ではないのでご注意ください（本家様に迷惑をかけないようご注意ください）。
 setlocal
-set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts;%PATH%
-call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
+__SET_PATH__
+call __CONDA__ activate mascotgirl
 cd mascotgirl/Style-Bert-VITS2
 python app.py
 cd ../..
-call %~dp0bin\Miniconda3\condabin\conda deactivate
+call __CONDA__ deactivate
 endlocal
+'''
+
+    uninstall_content_normal = r'''@echo off
+powershell -Command "Start-Process -Wait bin\Miniconda3\Uninstall-Miniconda3.exe /S"
+'''
+
+    uninstall_content_without_conda = r'''@echo off
+if EXIST "%~dp0.installed\.environment" (
+    conda remove -n mascotgirl --all -y
+    del /Q "%~dp0.installed\.environment"
+    uninstall.bat
+)
+'''
+
+    uninstall_content_remove = r'''
+move mascotgirl\charas charas_backup
+del /Q run.bat
+del /Q run_share.bat > nul 2>&1
+del /Q train_style_bert_vits2.bat
+rd /S /Q mascotgirl
+rd /S /Q bin
+rd /S /Q .installed
+echo アンインストールが完了しました
+pause
 '''
 
     def replace(target: str, content: str):
@@ -89,6 +113,21 @@ endlocal
             return False
         else:
             return True
+    
+    if os.path.isfile('.installed/.miniconda'):
+        set_path = r'set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts;%PATH%'
+        replace('__SET_PATH__', set_path)
+        train_style_bert_vits2_bat_content.replace('__SET_PATH__', set_path)
+        conda = r'%~dp0bin\Miniconda3\condabin\conda'
+        replace('__CONDA__', conda)
+        train_style_bert_vits2_bat_content.replace('__CONDA__', conda)
+    else:
+        set_path = r''
+        replace('__SET_PATH__', set_path)
+        train_style_bert_vits2_bat_content.replace('__SET_PATH__', set_path)
+        conda = r'conda'
+        replace('__CONDA__', conda)
+        train_style_bert_vits2_bat_content.replace('__CONDA__', conda)
 
     chat_backend_select = -1
     while chat_backend_select < 1 or chat_backend_select > 2:
@@ -162,3 +201,11 @@ endlocal
     with open('train_style_bert_vits2.bat', 'w', encoding='shift_jis') as open_file:
         open_file.write(train_style_bert_vits2_bat_content)
     
+    if os.path.isfile('.installed/.miniconda'):
+        uninstall_content = uninstall_content_normal + uninstall_content_remove
+    else:
+        uninstall_content = uninstall_content_without_conda + uninstall_content_remove
+    if not '\r\n' in uninstall_content:
+        uninstall_content.replace('\n', '\r\n')
+    with open('uninstall.bat', 'w', encoding='shift_jis') as open_file:
+        open_file.write(uninstall_content)

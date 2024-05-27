@@ -177,4 +177,5 @@ dependencies:
     - bitsandbytes
     - langchainhub
     - langchain-google-genai
+    - langchain-community
     - https://github.com/oobabooga/llama-cpp-python-cuBLAS-wheels/releases/download/wheels/llama_cpp_python-0.2.36+cu118-cp311-cp311-win_amd64.whl
