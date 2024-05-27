@@ -107,10 +107,14 @@ setting.jsonの内容は以下の通りです。
   "image": "chara_image.png",
   "background_image": "background.png",
   "chat_setting": "chara_setting.txt",
-  "bert_vits2_model": "jvnv-F1-jp", // サンプルの音声を設定
-  "bert_vits2_model_file_name": "jvnv-F1-jp_e160_s14000.safetensors" // サンプルの音声を設定
+  "bert_vits2_model": "jvnv-F1-jp",
+  "bert_vits2_model_file_name": "jvnv-F1-jp_e160_s14000.safetensors"
 }
 ```
+
+(※)  
+bert_vits2_model: サンプルの音声を設定  
+bert_vits2_model_file_name: サンプルの音声を設定
 
 ### 6. 実行
 
@@ -127,34 +131,66 @@ train_style_bert_vits2.batを実行すると[Style-Bert-VITS2](https://github.co
 詳細は[こちら](https://github.com/litagin02/Style-Bert-VITS2?tab=readme-ov-file#%E5%AD%A6%E7%BF%92)から確認してください。  
 （本家様に迷惑をかけないようご注意ください）
 
-作成し終わったら、キャラクターのフォルダ内に以下のファイルを追加してください。
-  - bert_vits2_modelフォルダ（以下のStyle-Bert-VITS2モデルのファイル（任意））
-    - config.json
-    - style_vectors.npy
-    - *.safetensors（番号が一番大きいもの）
-
-さらに、setting.jsonの内容を以下のようにすると完成です。
+作成し終わったら、setting.jsonの内容を以下のようにすると完成です。
 
 ```json
 {
   "image": "chara_image.png",
   "background_image": "background.png",
   "chat_setting": "chara_setting.txt",
-  "bert_vits2_model": "xxx", // モデルの名称（重複していなければ何でもよい）
-  "bert_vits2_model_path": "bert_vits2_model", // フォルダのパスを指定
-  "bert_vits2_model_file_name": "xxx.safetensors", // bert_vits2_model_pathの中にあるsafetensorsファイルの名前
+  "bert_vits2_model": "xxx",
+  "bert_vits2_model_file_name": "xxx.safetensors",
 }
 ```
 
-## 上級者向け
+(※)  
+bert_vits2_model: 作成したモデルの名称  
+bert_vits2_model_file_name: safetensorsファイルの名前
 
-OpenAI APIではなく、ローカルLLMを使用したい場合、setting.jsonに以下を追加することで置き換えることができます（llama.cppに対応したggufファイルのみ）。
+## FAQ
+
+### キャラクター設定のtxtファイル（3.で作成したchara_setting.txt）の内容が反映されない
+
+このプログラムではOpenAIのAssistant機能を使用しており、すでにAssistantが存在している場合はそちらを使用するようになっています。  
+その場合、設定を変更されない仕様になっているので[こちら](https://platform.openai.com/assistants)から該当のAssistant機能を削除してください。
+
+### すでに学習済みのStyle-Bert-VITS2モデルを使用したい
+
+キャラクターのフォルダ内に以下のファイルを追加してください。
+  - bert_vits2_modelフォルダ（以下のStyle-Bert-VITS2モデルのファイル（任意））
+    - config.json
+    - style_vectors.npy
+    - *.safetensors（番号が一番大きいもの）
+
+さらに、setting.jsonの内容を以下のようにしてください。
+
+```json
+{
+  "image": "chara_image.png",
+  "background_image": "background.png",
+  "chat_setting": "chara_setting.txt",
+  "bert_vits2_model": "xxx",
+  "bert_vits2_model_path": "bert_vits2_model",
+  "bert_vits2_model_file_name": "xxx.safetensors",
+}
+```
+
+(※)  
+bert_vits2_model: モデルの名称（重複していなければ何でもよい）  
+bert_vits2_model_path: フォルダのパスを指定  
+bert_vits2_model_file_name: safetensorsファイルの名前
+
+なお、モデルは配置時のコピーされるので、保存容量に注意してください。
+
+### OpenAI APIではなく、ローカルLLMを使用したい
+
+setting.jsonに以下を追加することで置き換えることができます（llama.cppに対応したggufファイルのみ）。
 
 ```json
 {
   // 中略
   "chat_backend": "LlamaCpp",
-  "chat_file_name": "ggml-model-Q6_K.gguf", // ローカルLLMのファイル名
+  "chat_file_name": "ggml-model-Q6_K.gguf",
   "chat_full_template": "{system}\n\n{messages}",
   "chat_human_template": "Human: {message} ",
   "chat_ai_template": "AI: {message} ",
@@ -164,17 +200,24 @@ OpenAI APIではなく、ローカルLLMを使用したい場合、setting.json�
 }
 ```
 
+(※)  
+chat_file_name: ローカルLLMのファイル名
+
 もしくは、以下のようにすることでHugging Faceからダウンロードして実行することも出来ます。
 
 ```json
 {
   // 中略
   "chat_backend": "LlamaCpp",
-  "chat_repo_id": "TheBloke/openchat-3.5-0106-GGUF", // リポジトリ名
-  "chat_file_name": "openchat-3.5-0106.Q6_K.gguf", // ファイル名
+  "chat_repo_id": "TheBloke/openchat-3.5-0106-GGUF",
+  "chat_file_name": "openchat-3.5-0106.Q6_K.gguf",
   // 中略
 }
 ```
+
+(※)  
+chat_repo_id: リポジトリ名  
+chat_file_name: ファイル名
 
 ## 使用しているするもの
 
