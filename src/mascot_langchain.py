@@ -11,8 +11,8 @@ import asyncio
 import torch
 
 from langchain.prompts import StringPromptTemplate, PromptTemplate, ChatPromptTemplate
-from langchain.memory import ChatMessageHistory
-from langchain.llms.huggingface_pipeline import HuggingFacePipeline
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_community.llms import HuggingFacePipeline
 from langchain.schema import (
     AIMessage,
     HumanMessage,
