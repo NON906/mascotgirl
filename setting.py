@@ -5,8 +5,7 @@ import os
 
 if __name__ == "__main__":
 
-    run_bat_content = r'''
-@echo off
+    run_bat_content = r'''@echo off
 setlocal
 set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts;%PATH%
 call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
@@ -27,10 +26,9 @@ python mascot.py ^
 cd ..
 call %~dp0bin\Miniconda3\condabin\conda deactivate
 endlocal
-    '''
+'''
 
-    run_share_bat_content = r'''
-@echo off
+    run_share_bat_content = r'''@echo off
 setlocal
 set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts;%PATH%
 call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
@@ -52,10 +50,12 @@ python mascot.py ^
 cd ..
 call %~dp0bin\Miniconda3\condabin\conda deactivate
 endlocal
-    '''
+'''
 
-    train_style_bert_vits2_bat_content = r'''
-@echo off
+    train_style_bert_vits2_bat_content = r'''@echo off
+echo NOTE:
+echo このバッチファイルは「litagin02/Style-Bert-VITS2」の学習用エディタを起動するだけのものです。
+echo NON906作ではないのでご注意ください（本家様に迷惑をかけないようご注意ください）。
 setlocal
 set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts;%PATH%
 call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
@@ -64,7 +64,7 @@ python app.py
 cd ../..
 call %~dp0bin\Miniconda3\condabin\conda deactivate
 endlocal
-    '''
+'''
 
     def replace(target: str, content: str):
         global run_bat_content
