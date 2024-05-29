@@ -117,17 +117,17 @@ pause
     if os.path.isfile('.installed/.miniconda'):
         set_path = r'set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts;%PATH%'
         replace('__SET_PATH__', set_path)
-        train_style_bert_vits2_bat_content.replace('__SET_PATH__', set_path)
+        train_style_bert_vits2_bat_content = train_style_bert_vits2_bat_content.replace('__SET_PATH__', set_path)
         conda = r'%~dp0bin\Miniconda3\condabin\conda'
         replace('__CONDA__', conda)
-        train_style_bert_vits2_bat_content.replace('__CONDA__', conda)
+        train_style_bert_vits2_bat_content = train_style_bert_vits2_bat_content.replace('__CONDA__', conda)
     else:
         set_path = r''
         replace('__SET_PATH__', set_path)
-        train_style_bert_vits2_bat_content.replace('__SET_PATH__', set_path)
+        train_style_bert_vits2_bat_content = train_style_bert_vits2_bat_content.replace('__SET_PATH__', set_path)
         conda = r'conda'
         replace('__CONDA__', conda)
-        train_style_bert_vits2_bat_content.replace('__CONDA__', conda)
+        train_style_bert_vits2_bat_content = train_style_bert_vits2_bat_content.replace('__CONDA__', conda)
 
     chat_backend_select = -1
     while chat_backend_select < 1 or chat_backend_select > 2:
