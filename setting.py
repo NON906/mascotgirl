@@ -78,7 +78,7 @@ call __CONDA__ deactivate
 del /Q run.bat
 del /Q run_share.bat > nul 2>&1
 del /Q train_style_bert_vits2.bat
-rem rd /S /Q mascotgirl
+rd /S /Q mascotgirl
 if NOT EXIST "%~dp0.installed\.environment" (
     powershell -Command "Start-Process -Wait bin\Miniconda3\Uninstall-Miniconda3.exe /S"
     rd /S /Q bin
