@@ -66,37 +66,42 @@ call __CONDA__ deactivate
 endlocal
 '''
 
-    uninstall_content_normal = r'''@echo off
-powershell -Command "Start-Process -Wait bin\Miniconda3\Uninstall-Miniconda3.exe /S"
-'''
-
-    uninstall_content_without_conda = r'''@echo off
-if EXIST "%~dp0.installed\.environment" (
-    conda remove -n mascotgirl --all -y
-    del /Q "%~dp0.installed\.environment"
-    uninstall.bat
+    uninstall_content = r'''@echo off
+setlocal
+__SET_PATH__
+call __CONDA__ activate mascotgirl
+python "mascotgirl/uninstall.py"
+if %ERRORLEVEL% neq 1 (
+    exit /b
 )
-'''
-
-    uninstall_content_remove = r'''
-move mascotgirl\charas charas_backup
+call __CONDA__ deactivate
 del /Q run.bat
 del /Q run_share.bat > nul 2>&1
 del /Q train_style_bert_vits2.bat
-rd /S /Q mascotgirl
+rem rd /S /Q mascotgirl
+if NOT EXIST "%~dp0.installed\.environment" (
+    powershell -Command "Start-Process -Wait bin\Miniconda3\Uninstall-Miniconda3.exe /S"
+    rd /S /Q bin
+    rd /S /Q .installed
+    del /Q uninstall.bat && echo アンインストールが完了しました && pause && exit /b
+)
 rd /S /Q bin
 rd /S /Q .installed
-echo アンインストールが完了しました
-pause
+conda remove -n mascotgirl --all -y && del /Q uninstall.bat && echo アンインストールが完了しました && pause
+endlocal
 '''
 
     def replace(target: str, content: str):
         global run_bat_content
         global run_share_bat_content
+        global train_style_bert_vits2_bat_content
+        global uninstall_content
         if content is None:
             content = ''
         run_bat_content = run_bat_content.replace(target, content)
         run_share_bat_content = run_share_bat_content.replace(target, content)
+        train_style_bert_vits2_bat_content = train_style_bert_vits2_bat_content.replace(target, content)
+        uninstall_content = uninstall_content.replace(target, content)
 
     def is_num(s: str):
         try:
@@ -117,17 +122,13 @@ pause
     if os.path.isfile('.installed/.miniconda'):
         set_path = r'set PATH=%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts;%PATH%'
         replace('__SET_PATH__', set_path)
-        train_style_bert_vits2_bat_content = train_style_bert_vits2_bat_content.replace('__SET_PATH__', set_path)
         conda = r'%~dp0bin\Miniconda3\condabin\conda'
         replace('__CONDA__', conda)
-        train_style_bert_vits2_bat_content = train_style_bert_vits2_bat_content.replace('__CONDA__', conda)
     else:
         set_path = r''
         replace('__SET_PATH__', set_path)
-        train_style_bert_vits2_bat_content = train_style_bert_vits2_bat_content.replace('__SET_PATH__', set_path)
         conda = r'conda'
         replace('__CONDA__', conda)
-        train_style_bert_vits2_bat_content = train_style_bert_vits2_bat_content.replace('__CONDA__', conda)
 
     chat_backend_select = -1
     while chat_backend_select < 1 or chat_backend_select > 2:
@@ -201,10 +202,6 @@ pause
     with open('train_style_bert_vits2.bat', 'w', encoding='shift_jis') as open_file:
         open_file.write(train_style_bert_vits2_bat_content)
     
-    if os.path.isfile('.installed/.miniconda'):
-        uninstall_content = uninstall_content_normal + uninstall_content_remove
-    else:
-        uninstall_content = uninstall_content_without_conda + uninstall_content_remove
     if not '\r\n' in uninstall_content:
         uninstall_content.replace('\n', '\r\n')
     with open('uninstall.bat', 'w', encoding='shift_jis') as open_file:
