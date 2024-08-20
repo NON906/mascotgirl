@@ -99,7 +99,7 @@ dependencies:
   - python-dateutil
   - python-fastjsonschema
   - python_abi
-  - pytorch
+  - pytorch<2.4
   - pytorch-mutex
   - pywin32
   - pywinpty

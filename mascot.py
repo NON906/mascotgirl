@@ -209,14 +209,20 @@ if __name__ == "__main__":
 
     selected_chara_name = ''
     if args.select_chara:
-        print('キャラクターを選択してください')
+        print('キャラクターを選択してください（数字を入力）')
         dir_path = os.path.join(os.path.dirname(__file__), 'charas')
         chara_dir = [
             f for f in os.listdir(dir_path) if os.path.isdir(os.path.join(dir_path, f)) and os.path.isfile(os.path.join(dir_path, f, 'setting.json'))
         ]
         for loop, chara_name in enumerate(chara_dir):
             print(str(loop + 1) + ': ' + chara_name)
-        chara_id = int(input('> ')) - 1
+        chara_id = -1
+        while chara_id > 0 and chara_id <= len(chara_dir):
+            try:
+                chara_id = int(input('> ')) - 1
+            except ValueError:
+                print('数字を入力してください')
+                chara_id = -1
         with open(os.path.join(dir_path, chara_dir[chara_id], 'setting.json'), encoding='utf-8') as f:
             chara_dict = json.load(f)
         for k, v in chara_dict.items():

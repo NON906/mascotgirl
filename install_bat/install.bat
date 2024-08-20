@@ -19,13 +19,13 @@ if NOT EXIST "%~dp0.installed\.wget" (
 
 set PATH=%~dp0bin\wget;%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts
 
-if NOT EXIST "%~dp0.installed\.git_1" (
+if NOT EXIST "%~dp0.installed\.git_2" (
     %~dp0bin\Miniconda3\condabin\conda install git -y
-    git clone --depth 1 --recursive "https://github.com/NON906/mascotgirl.git"
+    %~dp0bin\Miniconda3\Library\bin\git clone --depth 1 --recursive "https://github.com/NON906/mascotgirl.git"
     cd "mascotgirl"
     %~dp0bin\Miniconda3\condabin\conda env create -n mascotgirl -f environment.yml
     cd ".."
-    echo f >> "%~dp0.installed\.git_1"
+    echo f >> "%~dp0.installed\.git_2"
     install.bat
 )
 
