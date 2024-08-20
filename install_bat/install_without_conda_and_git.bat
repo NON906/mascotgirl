@@ -21,16 +21,11 @@ if NOT EXIST "%~dp0.installed\.environment" (
     install_without_conda_and_git.bat
 )
 
-call conda activate mascotgirl
+cd "mascotgirl"
+git pull
+cd %~dp0
 
-if NOT EXIST "%~dp0.installed\.style-bert-vits2" (
-    cd "mascotgirl\Style-Bert-VITS2"
-    python initialize.py
-    cd "..\.."
-    conda clean -y --all
-    echo f >> "%~dp0.installed\.style-bert-vits2"
-    install_without_conda_and_git.bat
-)
+call conda activate mascotgirl
 
 python "mascotgirl/install.py"
 python "mascotgirl/setting.py"

@@ -24,7 +24,7 @@ def install_extensions(name: str):
         make_empty_file(os.path.join('extensions', name, '.installed'))
 
 if __name__ == "__main__":
-    subprocess.run(['conda', 'env', 'update', '-f', 'mascotgirl/environment_notpip.yml'])
+    subprocess.run(['conda', 'env', 'update', '-f', 'mascotgirl/environment_notpip.yml'], shell=True)
     subprocess.run(['python', '-m', 'pip', 'install', '-r', 'mascotgirl/requirements.txt'])
 
     if not os.path.isfile('.installed/.style-bert-vits2'):
@@ -33,7 +33,7 @@ if __name__ == "__main__":
         os.chdir('../..')
         make_empty_file('.installed/.style-bert-vits2')
 
-    subprocess.run(['conda', 'clean', '-y', '--all'])
+    subprocess.run(['conda', 'clean', '-y', '--all'], shell=True)
 
     while not os.path.isfile('.installed/.tha3'):
         wget('https://www.dropbox.com/s/zp3e5ox57sdws3y/editor.pt?dl=0', 'mascotgirl/talking_head_anime_3_demo/data/models/standard_float/editor.pt')
