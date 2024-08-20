@@ -78,6 +78,7 @@ call __CONDA__ deactivate
 del /Q run.bat
 del /Q run_share.bat > nul 2>&1
 del /Q train_style_bert_vits2.bat
+del /Q setting.bat
 rd /S /Q mascotgirl
 if NOT EXIST "%~dp0.installed\.environment" (
     powershell -Command "Start-Process -Wait bin\Miniconda3\Uninstall-Miniconda3.exe /S"
@@ -88,6 +89,15 @@ if NOT EXIST "%~dp0.installed\.environment" (
 rd /S /Q bin
 rd /S /Q .installed
 conda remove -n mascotgirl --all -y && del /Q uninstall.bat && echo アンインストールが完了しました && pause
+endlocal
+'''
+
+    setting_content = r'''@echo off
+setlocal
+__SET_PATH__
+call __CONDA__ activate mascotgirl
+python "mascotgirl/setting.py"
+call __CONDA__ deactivate
 endlocal
 '''
 
@@ -206,3 +216,8 @@ endlocal
         uninstall_content.replace('\n', '\r\n')
     with open('uninstall.bat', 'w', encoding='shift_jis') as open_file:
         open_file.write(uninstall_content)
+
+    if not '\r\n' in setting_content:
+        setting_content.replace('\n', '\r\n')
+    with open('setting.bat', 'w', encoding='shift_jis') as open_file:
+        open_file.write(setting_content)

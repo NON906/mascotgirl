@@ -29,16 +29,11 @@ if NOT EXIST "%~dp0.installed\.git_2" (
     install.bat
 )
 
-call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
+cd "mascotgirl"
+%~dp0bin\Miniconda3\Library\bin\git pull
+cd ".."
 
-if NOT EXIST "%~dp0.installed\.style-bert-vits2" (
-    cd "mascotgirl\Style-Bert-VITS2"
-    python initialize.py
-    cd "..\.."
-    conda clean -y --all
-    echo f >> "%~dp0.installed\.style-bert-vits2"
-    install.bat
-)
+call %~dp0bin\Miniconda3\condabin\conda activate mascotgirl
 
 python "mascotgirl/install.py"
 python "mascotgirl/setting.py"
