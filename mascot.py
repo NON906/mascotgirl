@@ -217,7 +217,7 @@ if __name__ == "__main__":
         for loop, chara_name in enumerate(chara_dir):
             print(str(loop + 1) + ': ' + chara_name)
         chara_id = -1
-        while chara_id > 0 and chara_id <= len(chara_dir):
+        while chara_id < 0 or chara_id >= len(chara_dir):
             try:
                 chara_id = int(input('> ')) - 1
             except ValueError:
