@@ -106,12 +106,14 @@ endlocal
         global run_share_bat_content
         global train_style_bert_vits2_bat_content
         global uninstall_content
+        global setting_content
         if content is None:
             content = ''
         run_bat_content = run_bat_content.replace(target, content)
         run_share_bat_content = run_share_bat_content.replace(target, content)
         train_style_bert_vits2_bat_content = train_style_bert_vits2_bat_content.replace(target, content)
         uninstall_content = uninstall_content.replace(target, content)
+        setting_content = setting_content.replace(target, content)
 
     def is_num(s: str):
         try:
