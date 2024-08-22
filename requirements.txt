@@ -1,5 +1,5 @@
 wxpython
-openai>=1.1,<=1.20
+openai>=1.42
 py7zr
 opencv-python
 rembg

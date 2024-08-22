@@ -20,7 +20,7 @@ from langchain.schema import (
 from langchain.callbacks.tracers import ConsoleCallbackHandler
 from langchain_community.llms import LlamaCpp
 from langchain_core.runnables.passthrough import RunnablePick
-from langchain.agents.openai_assistant import OpenAIAssistantRunnable
+from langchain_community.agents.openai_assistant import OpenAIAssistantV2Runnable 
 from langchain_core.output_parsers import StrOutputParser
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain.pydantic_v1 import BaseModel, Field
@@ -271,7 +271,7 @@ class MascotLangChain:
                 json_dict = None
                 with open(os.path.join(current_path, 'openai_assistant.json'), 'r', encoding='UTF-8') as f:
                     json_dict = json.load(f)
-                agent = OpenAIAssistantRunnable(
+                agent = OpenAIAssistantV2Runnable(
                     assistant_id=json_dict[self.chara_name],
                     as_agent=True,
                 )
@@ -282,7 +282,7 @@ class MascotLangChain:
                         if self.chara_name in json_dict.keys():
                             self.thread_id = json_dict[self.chara_name]
             except:
-                agent = OpenAIAssistantRunnable.create_assistant(
+                agent = OpenAIAssistantV2Runnable.create_assistant(
                     name="mascotgirl " + self.chara_name,
                     instructions=system_message,
                     tools=tools,
