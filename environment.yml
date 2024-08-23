@@ -172,10 +172,10 @@ dependencies:
     - tensorboard
     - transformers
     - umap-learn
-    - langchain
+    - langchain>=0.2.14
     - accelerate
     - bitsandbytes
     - langchainhub
     - langchain-google-genai
-    - langchain-community
+    - langchain-community>=0.2.12
     - https://github.com/oobabooga/llama-cpp-python-cuBLAS-wheels/releases/download/wheels/llama_cpp_python-0.2.36+cu118-cp311-cp311-win_amd64.whl
