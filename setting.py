@@ -52,6 +52,29 @@ call __CONDA__ deactivate
 endlocal
 '''
 
+    run_local_bat_content = r'''@echo off
+setlocal
+__SET_PATH__
+call __CONDA__ activate mascotgirl
+cd mascotgirl
+python mascot.py ^
+    --select_chara ^
+    __IGNORE_EXTENSIONS__ ^
+    --voicevox_url "" ^
+    --chat_backend "__CHAT_BACKEND__" ^
+    __CHAT_OPTION__ ^
+    --show_qrcode ^
+    --chatgpt_log "chatgpt.json" ^
+    --chatgpt_log_replace ^
+    --image_pipe_name "\\.\pipe\mascot_image_pipe" ^
+    --framerate 30 ^
+    --run_command_reload ^
+    --run_command "ffmpeg\ffmpeg -y -f rawvideo -pix_fmt rgba -s 512x512 -framerate 30 -thread_queue_size 8192 -i \\.\pipe\mascot_image_pipe -f s16le -ar __AUDIO_FREQ__ -ac 1 -thread_queue_size 8192 -i \\.\pipe\mascot_pipe -auto-alt-ref 0 -deadline realtime -quality realtime -cpu-used 4 -row-mt 1 -crf 30 -b:v 0 -pass 1 -c:v libvpx-vp9 -c:a libopus -f matroska tcp://0.0.0.0:55009/stream?listen"
+cd ..
+call __CONDA__ deactivate
+endlocal
+'''
+
     train_style_bert_vits2_bat_content = r'''@echo off
 echo NOTE:
 echo このバッチファイルは「litagin02/Style-Bert-VITS2」の学習用エディタを起動するだけのものです。
@@ -98,12 +121,14 @@ __SET_PATH__
 call __CONDA__ activate mascotgirl
 python "mascotgirl/setting.py"
 call __CONDA__ deactivate
+pause
 endlocal
 '''
 
     def replace(target: str, content: str):
         global run_bat_content
         global run_share_bat_content
+        global run_local_bat_content
         global train_style_bert_vits2_bat_content
         global uninstall_content
         global setting_content
@@ -111,6 +136,7 @@ endlocal
             content = ''
         run_bat_content = run_bat_content.replace(target, content)
         run_share_bat_content = run_share_bat_content.replace(target, content)
+        run_local_bat_content = run_local_bat_content.replace(target, content)
         train_style_bert_vits2_bat_content = train_style_bert_vits2_bat_content.replace(target, content)
         uninstall_content = uninstall_content.replace(target, content)
         setting_content = setting_content.replace(target, content)
@@ -209,6 +235,10 @@ endlocal
             run_share_bat_content.replace('\n', '\r\n')
         with open('run_share.bat', 'w', encoding='shift_jis') as open_file:
             open_file.write(run_share_bat_content)
+    if not '\r\n' in run_local_bat_content:
+        run_local_bat_content.replace('\n', '\r\n')
+    with open('run_local.bat', 'w', encoding='shift_jis') as open_file:
+        open_file.write(run_local_bat_content)
     if not '\r\n' in train_style_bert_vits2_bat_content:
         train_style_bert_vits2_bat_content.replace('\n', '\r\n')
     with open('train_style_bert_vits2.bat', 'w', encoding='shift_jis') as open_file:

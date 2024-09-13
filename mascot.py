@@ -32,6 +32,7 @@ import wave
 import subprocess
 import shutil
 from starlette.websockets import WebSocketDisconnect
+import socket
 
 from src.mascot_image import MascotImage
 from src.animation_mouth import AnimationMouth
@@ -260,13 +261,19 @@ if __name__ == "__main__":
     image_tcp_protocol = 'tcp'
     image_tcp_url = '/stream'
     image_tcp_port = 55009
-    if args.ngrok_auth_token is not None:
-        from pyngrok import ngrok, conf
-        conf.get_default().auth_token = args.ngrok_auth_token
-        http_url = ngrok.connect(55007, "http").public_url
-        image_tcp_url = ngrok.connect(image_tcp_port, image_tcp_protocol).public_url + image_tcp_url
-        image_tcp_protocol = ''
-        image_tcp_port = 0
+    if args.show_qrcode:
+        if args.ngrok_auth_token is not None:
+            from pyngrok import ngrok, conf
+            conf.get_default().auth_token = args.ngrok_auth_token
+            http_url = ngrok.connect(55007, "http").public_url
+            image_tcp_url = ngrok.connect(image_tcp_port, image_tcp_protocol).public_url + image_tcp_url
+            image_tcp_protocol = ''
+            image_tcp_port = 0
+        else:
+            if os.name == 'nt':
+                host = socket.gethostname()
+                ipaddress = socket.gethostbyname(host)
+                http_url = 'http://' + ipaddress + ':' + str(args.http_port)
 
     if args.rvc_pytorch_model_file == '':
         args.rvc_pytorch_model_file = None
@@ -971,22 +978,21 @@ if __name__ == "__main__":
     start_threads()
 
     def show_qrcode():
-        if args.ngrok_auth_token is not None:
-            #print('---')
-            #print('Public URL is here: ' + http_url)
-            #print('---')
-            if args.show_qrcode:
-                import qrcode
-                qrcode_pil = qrcode.make('mascotgirl://' + http_url)
-                qrcode_cv2 = numpy.array(qrcode_pil, dtype=numpy.uint8) * 255
-                def qrcode_thread_func():
-                    global open_qrcode
-                    open_qrcode = True
-                    cv2.imshow('Please scan.', qrcode_cv2)
-                    while open_qrcode:
-                        cv2.waitKey(1)
-                qrcode_thread = threading.Thread(target=qrcode_thread_func)
-                qrcode_thread.start()
+        #print('---')
+        #print('Public URL is here: ' + http_url)
+        #print('---')
+        if args.show_qrcode:
+            import qrcode
+            qrcode_pil = qrcode.make('mascotgirl://' + http_url)
+            qrcode_cv2 = numpy.array(qrcode_pil, dtype=numpy.uint8) * 255
+            def qrcode_thread_func():
+                global open_qrcode
+                open_qrcode = True
+                cv2.imshow('Please scan.', qrcode_cv2)
+                while open_qrcode:
+                    cv2.waitKey(1)
+            qrcode_thread = threading.Thread(target=qrcode_thread_func)
+            qrcode_thread.start()
 
     def stop_threads():
         global stop_main_thread
