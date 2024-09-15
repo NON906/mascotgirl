@@ -35,7 +35,7 @@ NOTE: ver0.7にて大幅な変更を行いました。
 ### 1. インストーラーのダウンロード・実行（必須）
 
 インストーラー(install.bat)のみで、各種アプリ・ライブラリをインストールすることが出来ます。  
-install.batを[こちらからダウンロード](https://github.com/NON906/mascotgirl/releases/tag/ver0.8.1)し、インストールしたい場所に移動されてから、ダブルクリックで実行してください。  
+install.batを[こちらからダウンロード](https://github.com/NON906/mascotgirl/releases/tag/ver0.8.2)し、インストールしたい場所に移動されてから、ダブルクリックで実行してください。  
 （もし開発者などで、すでにcondaとgitがインストール済みの場合は、install_without_conda_and_git.batでも構いません。こちらの方が容量が削減できます）  
 画面の指示が出た場合は、その指示に従って入力してください。  
 デフォルトで問題ない場合は、（OpenAIのAPIキー以外は）空白でも問題ありません。  
