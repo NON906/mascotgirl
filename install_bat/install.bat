@@ -17,7 +17,7 @@ if NOT EXIST "%~dp0.installed\.wget" (
     echo f >> "%~dp0.installed\.wget"
 )
 
-set PATH=%~dp0bin\wget;%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts
+set PATH=%~dp0bin\wget;%~dp0bin\Miniconda3;%~dp0bin\Miniconda3\condabin;%~dp0bin\Miniconda3\Library\mingw-w64\bin;%~dp0bin\Miniconda3\Library\usr\bin;%~dp0bin\Miniconda3\Library\bin;%~dp0bin\Miniconda3\Scripts;%PATH%
 
 if NOT EXIST "%~dp0.installed\.git_2" (
     %~dp0bin\Miniconda3\condabin\conda install git -y
